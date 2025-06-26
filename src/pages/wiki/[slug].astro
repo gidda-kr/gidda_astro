@@ -1,46 +1,62 @@
 ---
-import MinLayout from '../../layouts/MinLayout.astro'; // <-- 레이아웃 파일명 변경 반영
+import MinLayout from '../../layouts/MinLayout.astro';
 import { Remarkable } from 'remarkable';
 
-// Remarkable 인스턴스 생성 및 옵션 설정
-// footnotes: true 옵션을 추가하여 각주 기능을 활성화합니다.
+// Remarkable 인스턴스를 생성하고 각주 기능을 활성화합니다.
 const md = new Remarkable({
   html: true,
   typographer: true,
   linkify: true,
-  footnotes: true, // <-- 각주 기능 활성화
+  footnotes: true,
 });
 
-// 1. API 대신 로컬 JSON 파일에서 데이터를 가져옵니다.
-import jsonData from '../../data/wiki.json';
-
+// Astro 빌드 시점에 Strapi API에서 데이터를 가져와서 페이지를 생성합니다.
 export async function getStaticPaths() {
-  // 2. JSON 파일에서 데이터 배열을 가져옵니다.
-  const wikis = jsonData.data;
+  // --- 여기에 Cloud Run Strapi API 주소를 입력하세요 ---
+  const strapiUrl = 'https://[복사한_Cloud_Run_URL]';
+  const apiPath = '/api/wikis';
+  const queryParams = '?populate=*';
 
-  // 3. 각 위키 항목에 대한 URL 경로와 props를 정의합니다.
-  return wikis.map((wiki) => {
-    if (!wiki.slug) {
-      console.error('slug 속성이 없는 위키 항목:', wiki);
-      return null;
+  try {
+    const response = await fetch(`${strapiUrl}${apiPath}${queryParams}`);
+    if (!response.ok) {
+        console.error(`Strapi API 호출 실패: ${response.status} ${response.statusText}`);
+        return [];
     }
-    return {
-      params: { slug: wiki.slug },
-      props: { wiki: wiki },
-    };
-  }).filter(Boolean);
+    const jsonData = await response.json();
+    const wikis = jsonData.data;
+
+    if (!wikis || wikis.length === 0) {
+      console.warn('Strapi API에서 데이터를 가져오지 못했거나, 데이터가 비어 있습니다.');
+      return [];
+    }
+
+    return wikis.map((wiki) => {
+      if (!wiki.slug) {
+        console.error('slug 속성이 없는 위키 항목:', wiki);
+        return null;
+      }
+      return {
+        params: { slug: wiki.slug },
+        props: { wiki: wiki },
+      };
+    }).filter(Boolean);
+  } catch (error) {
+    console.error('API 호출 중 예외 발생:', error);
+    return [];
+  }
 }
 
 const { wiki } = Astro.props;
 
-// Remarkable을 사용하여 마크다운을 HTML로 변환합니다.
-// Strapi 필드 이름이 이제 'content'로 변경되었습니다.
-const htmlContent = md.render(wiki.content || ''); // <-- Content -> content 변경 반영
+// Remarkable을 사용하여 마크다운 콘텐츠를 HTML로 변환합니다.
+// 이 코드는 이제 [[...]] 문법을 처리하지 않습니다.
+const htmlContent = md.render(wiki.content || '');
 ---
 
-<MinLayout title={wiki.title}> {/* <-- Layout과 title prop 변경 반영 */}
+<MinLayout title={wiki.title}>
   <article>
-    <h1>{wiki.title}</h1> {/* <-- Title -> title 변경 반영 */}
+    <h1>{wiki.title}</h1>
     <Fragment set:html={htmlContent} />
   </article>
 </MinLayout>

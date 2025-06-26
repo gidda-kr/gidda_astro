@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "astro": "^5.10.1",
+    "pg": "^8.16.2",
     "remarkable": "^2.0.1"
   }
 }
