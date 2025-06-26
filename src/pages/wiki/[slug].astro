@@ -1,0 +1,46 @@
+---
+import MinLayout from '../../layouts/MinLayout.astro'; // <-- 레이아웃 파일명 변경 반영
+import { Remarkable } from 'remarkable';
+
+// Remarkable 인스턴스 생성 및 옵션 설정
+// footnotes: true 옵션을 추가하여 각주 기능을 활성화합니다.
+const md = new Remarkable({
+  html: true,
+  typographer: true,
+  linkify: true,
+  footnotes: true, // <-- 각주 기능 활성화
+});
+
+// 1. API 대신 로컬 JSON 파일에서 데이터를 가져옵니다.
+import jsonData from '../../data/wiki.json';
+
+export async function getStaticPaths() {
+  // 2. JSON 파일에서 데이터 배열을 가져옵니다.
+  const wikis = jsonData.data;
+
+  // 3. 각 위키 항목에 대한 URL 경로와 props를 정의합니다.
+  return wikis.map((wiki) => {
+    if (!wiki.slug) {
+      console.error('slug 속성이 없는 위키 항목:', wiki);
+      return null;
+    }
+    return {
+      params: { slug: wiki.slug },
+      props: { wiki: wiki },
+    };
+  }).filter(Boolean);
+}
+
+const { wiki } = Astro.props;
+
+// Remarkable을 사용하여 마크다운을 HTML로 변환합니다.
+// Strapi 필드 이름이 이제 'content'로 변경되었습니다.
+const htmlContent = md.render(wiki.content || ''); // <-- Content -> content 변경 반영
+---
+
+<MinLayout title={wiki.title}> {/* <-- Layout과 title prop 변경 반영 */}
+  <article>
+    <h1>{wiki.title}</h1> {/* <-- Title -> title 변경 반영 */}
+    <Fragment set:html={htmlContent} />
+  </article>
+</MinLayout>

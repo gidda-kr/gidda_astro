@@ -1,0 +1,43 @@
+---
+// ymal에서 title을 받아옵니다.
+export interface Props {
+  title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <style is:global>
+      /* 전체 페이지에 적용되는 스타일 */
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        margin: 0;
+        padding: 0;
+        background-color: #f9f9f9;
+        color: #333;
+      }
+      /* 메인 콘텐츠 영역에 패딩과 최대 너비를 줍니다. */
+      main {
+        max-width: 800px;
+        margin: 2rem auto; /* 중앙 정렬 */
+        padding: 1rem 2rem; /* 내부 여백 */
+      }
+      /* 제목과 문단에 여백을 추가합니다. */
+      main h1, main h2, main h3, main p, main ul, main ol {
+        margin-bottom: 1.5rem;
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <slot /> {/* 마크다운 콘텐츠가 이 안에 들어갑니다. */}
+    </main>
+  </body>
+</html>
