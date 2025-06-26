@@ -13,7 +13,7 @@ const md = new Remarkable({
 // Astro 빌드 시점에 Strapi API에서 데이터를 가져와서 페이지를 생성합니다.
 export async function getStaticPaths() {
   // --- 여기에 Cloud Run Strapi API 주소를 입력하세요 ---
-  const strapiUrl = 'https://[복사한_Cloud_Run_URL]';
+  const strapiUrl = 'https://strapi-app-63132904920.asia-northeast3.run.app/';
   const apiPath = '/api/wikis';
   const queryParams = '?populate=*';
 
