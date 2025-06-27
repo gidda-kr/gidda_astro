@@ -19,36 +19,36 @@ const { title } = Astro.props;
             line-height: 1.6;
             margin: 0;
             padding: 0;
-            background-color: #f9f9f9;
-            color: #333230; /* 텍스트 색상을 따뜻한 차콜 브라운으로 변경 */
+            background-color: #f5f5f4; /* 배경색을 부드러운 오프 화이트로 변경 */
+            color: #333230; /* 텍스트 색상 */
             display: flex;
             flex-direction: column;
             min-height: 100vh;
         }
         main {
-            flex: 1; /* 메인 콘텐츠가 남은 공간을 모두 차지하도록 설정 */
+            flex: 1;
         }
         a {
-            color: #28a745; /* 링크 색깔을 녹색 계열로 변경 */
+            color: #355E3B; /* 링크 색상을 푸터와 동일한 헌터 그린으로 통일 */
             text-decoration: none;
         }
         a:hover {
             text-decoration: underline;
-            color: #218838; /* 마우스 올렸을 때 더 진한 녹색으로 */
+            color: #2b492e; /* 호버 시 약간 더 진한 녹색으로 */
         }
         /* --- 푸터 스타일 --- */
         footer {
-            background-color: #355E3B; /* 차분하고 깊은 헌터 그린 */
+            background-color: #355E3B;
             color: #fff;
             padding: 1.5rem;
             text-align: center;
             margin-top: auto;
         }
-        /* --- [새로운 스타일] 상단 메뉴 스타일 --- */
+        /* --- 상단 메뉴 스타일 --- */
         .site-header {
-            background-color: #fff;
+            background-color: #f5f5f4; /* 헤더 배경색을 본문과 동일하게 변경 */
             padding: 1.5rem 2rem;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+            box-shadow: 0 1px 5px rgba(0, 0, 0, 0.03); /* 그림자를 더 부드럽게 */
             text-align: center;
         }
         .main-nav a {
@@ -69,7 +69,7 @@ const { title } = Astro.props;
 </header>
 
 <main>
-    <slot /> {/* 각 페이지의 콘텐츠가 여기에 삽입됩니다. */}
+    <slot />
 </main>
 
 <footer>

@@ -2,7 +2,7 @@
 import WikiPage from '../../layouts/wiki_page.astro';
 
 // 1. Astro 빌드 시점에 Strapi API에서 모든 위키 항목을 가져옵니다.
-const strapiUrl = 'https://strapi-app-63132904920.asia-northeast3.run.app'; // <-- 여기에 실제 URL을 입력하세요!
+const strapiUrl = 'https://strapi-app-63132904920.asia-northeast3.run.app';
 const apiPath = '/api/wikis';
 const queryParams = '?populate=*';
 
@@ -27,15 +27,17 @@ wikis.sort((a, b) => a.title.localeCompare(b.title));
     <p>총 {wikis.length}개의 위키 항목이 있습니다.</p>
 
     {wikis.length === 0 ? (
-      <p>아직 작성된 위키 항목이 없습니다. Strapi에서 첫 번째 글을 작성해 보세요!</p>
+        <p>아직 작성된 위키 항목이 없습니다. Strapi에서 첫 번째 글을 작성해 보세요!</p>
     ) : (
-      <ul class="wiki-list">
-        {wikis.map((wiki) => (
-          <li>
-            <a href={`/wiki/${wiki.slug}`}>{wiki.title}</a>
-          </li>
-        ))}
-      </ul>
+        <ul class="wiki-list">
+          {wikis.map((wiki) => (
+              <li class="wiki-card">
+                <a href={`/wiki/${wiki.slug}`}>
+                  <h2>{wiki.title}</h2>
+                </a>
+              </li>
+          ))}
+        </ul>
     )}
   </article>
 </WikiPage>
@@ -44,20 +46,43 @@ wikis.sort((a, b) => a.title.localeCompare(b.title));
   .wiki-list {
     list-style: none;
     padding: 0;
+    display: grid;
+    gap: 1rem;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    align-items: stretch;
   }
-  .wiki-list li {
-    background-color: #fff;
-    margin-bottom: 1rem;
+  .wiki-card {
+    /* 카드 기본 스타일 */
+    background-color: #fcfcfc; /* 카드 배경을 아주 미세한 오프 화이트로 설정 */
+    margin-bottom: 0;
     padding: 1.2rem;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    min-height: 120px;
+    border-radius: 12px;
+    /* 그림자를 더 부드럽게 변경 */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
   }
-  .wiki-list a {
-    font-size: 1.2rem;
-    font-weight: bold;
+  .wiki-card:hover {
+    /* 호버 시 그림자를 더 진하고 넓게 변경 */
+    transform: translateY(-5px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+    cursor: pointer;
+  }
+  .wiki-card a {
+    display: block;
     text-decoration: none;
   }
-  .wiki-list a:hover {
-    text-decoration: underline;
+  .wiki-card a:hover {
+    text-decoration: none;
+  }
+  .wiki-card h2 {
+    font-size: 1.5rem;
+    margin: 0;
+    line-height: 1.3;
+    text-align: center;
+    /* h2는 a 태그 안에 있으므로 색상을 따로 지정할 필요 없습니다. */
   }
 </style>
