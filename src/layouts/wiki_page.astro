@@ -8,9 +8,6 @@ const { title } = Astro.props;
 ---
 
 <BaseLayout title={title}>
-  <header style="text-align:center; padding:1rem;">
-    <a href="/wiki" style="text-decoration:none; font-weight:bold;">← 위키 대문으로 돌아가기</a>
-  </header>
 
   <div class="wiki-content-container">
     <slot />
