@@ -1,0 +1,64 @@
+---
+import MinLayout from '../../layouts/MinLayout.astro';
+
+// 1. Astro 빌드 시점에 Strapi API에서 모든 위키 항목을 가져옵니다.
+const strapiUrl = 'https://strapi-app-63132904920.asia-northeast3.run.app'; // <-- 여기에 실제 URL을 입력하세요!
+const apiPath = '/api/wikis';
+const queryParams = '?populate=*';
+
+let wikis = [];
+try {
+  const response = await fetch(`${strapiUrl}${apiPath}${queryParams}`);
+  const jsonData = await response.json();
+  if (jsonData.data) {
+    wikis = jsonData.data;
+  }
+} catch (error) {
+  console.error('Strapi API에서 위키 목록을 가져오는 데 실패했습니다:', error);
+}
+
+// 2. 제목을 기준으로 위키 목록을 정렬합니다.
+wikis.sort((a, b) => a.title.localeCompare(b.title));
+---
+
+<MinLayout title="위키 목록">
+  <article>
+    <h1>전체 위키 목록</h1>
+    <p>총 {wikis.length}개의 위키 항목이 있습니다.</p>
+
+    {wikis.length === 0 ? (
+      <p>아직 작성된 위키 항목이 없습니다. Strapi에서 첫 번째 글을 작성해 보세요!</p>
+    ) : (
+      <ul class="wiki-list">
+        {wikis.map((wiki) => (
+          <li>
+            <a href={`/wiki/${wiki.slug}`}>{wiki.title}</a>
+          </li>
+        ))}
+      </ul>
+    )}
+  </article>
+</MinLayout>
+
+<style>
+  .wiki-list {
+    list-style: none;
+    padding: 0;
+  }
+  .wiki-list li {
+    background-color: #fff;
+    margin-bottom: 1rem;
+    padding: 1.2rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  }
+  .wiki-list a {
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: #007bff;
+    text-decoration: none;
+  }
+  .wiki-list a:hover {
+    text-decoration: underline;
+  }
+</style>
