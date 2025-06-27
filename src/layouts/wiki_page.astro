@@ -16,7 +16,7 @@ const { title } = Astro.props;
     <slot />
   </div>
 
-  <style>
+  <style is:global>
     /* 이 스타일은 위키 페이지 레이아웃에만 적용됩니다. */
     .wiki-content-container {
       max-width: 800px;
