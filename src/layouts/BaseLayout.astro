@@ -60,6 +60,30 @@ const { title } = Astro.props;
             font-size: 1.1rem;
             color: #333230;
         }
+
+        #scrollToTopBtn {
+            display: none; /* 기본적으로 숨겨둡니다 */
+            position: fixed; /* 스크롤해도 제자리에 고정 */
+            bottom: 2rem; /* 화면 하단에서 2rem */
+            right: 2rem; /* 화면 오른쪽에서 2rem */
+            z-index: 99; /* 다른 요소 위에 표시 */
+            border: none;
+            outline: none;
+            background-color: #355E3B; /* 푸터와 동일한 색상 */
+            color: white;
+            cursor: pointer;
+            padding: 1rem 1.2rem;
+            border-radius: 50%; /* 원 모양 */
+            font-size: 1.5rem;
+            font-weight: bold;
+            line-height: 1;
+            opacity: 0.8;
+            transition: opacity 0.3s, transform 0.3s;
+        }
+        #scrollToTopBtn:hover {
+            opacity: 1;
+            transform: scale(1.1); /* 마우스 올리면 살짝 커짐 */
+        }
     </style>
 </head>
 <body>
@@ -74,6 +98,33 @@ const { title } = Astro.props;
 <main>
     <slot />
 </main>
+
+<button id="scrollToTopBtn" title="페이지 맨 위로">↑</button>
+
+<script is:inline>
+    // JavaScript: 스크롤 감지 및 버튼 클릭 이벤트 처리
+    document.addEventListener('DOMContentLoaded', () => {
+        const btn = document.getElementById('scrollToTopBtn');
+
+        // 스크롤 위치에 따라 버튼을 보이거나 숨깁니다.
+        window.onscroll = () => {
+            // 200px 이상 스크롤했을 때 버튼을 표시합니다.
+            if (document.body.scrollTop > 200 || document.documentElement.scrollTop > 200) {
+                btn.style.display = 'block';
+            } else {
+                btn.style.display = 'none';
+            }
+        };
+
+        // 버튼을 클릭했을 때 페이지 맨 위로 부드럽게 스크롤합니다.
+        btn.addEventListener('click', () => {
+            window.scrollTo({
+                top: 0,
+                behavior: 'smooth'
+            });
+        });
+    });
+</script>
 
 <footer>
     <p>긷다 since 2025</p>
