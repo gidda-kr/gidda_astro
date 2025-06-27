@@ -1,0 +1,57 @@
+---
+export interface Props {
+    title: string;
+}
+
+const { title } = Astro.props;
+---
+
+<!doctype html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{title}</title>
+    <style is:global>
+        /* --- 모든 페이지에 적용되는 전역 스타일 --- */
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 0;
+            background-color: #f9f9f9;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        main {
+            flex: 1; /* 메인 콘텐츠가 남은 공간을 모두 차지하도록 설정 */
+        }
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        /* --- 푸터 스타일 --- */
+        footer {
+            background-color: #333;
+            color: #fff;
+            padding: 1.5rem;
+            text-align: center;
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+<main>
+    <slot /> {/* 각 페이지의 콘텐츠가 여기에 삽입됩니다. */}
+</main>
+
+<footer>
+    <p>긷다 since 2025</p>
+</footer>
+</body>
+</html>

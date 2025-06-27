@@ -1,11 +1,24 @@
 ---
-import Welcome from '../components/Welcome.astro';
-import Layout from '../layouts/Layout.astro';
-
-// Welcome to Astro! Wondering what to do next? Check out the Astro documentation at https://docs.astro.build
-// Don't want to use any of this? Delete everything in this file, the `assets`, `components`, and `layouts` directories, and start fresh.
+import BaseLayout from '../layouts/BaseLayout.astro'; // <-- BaseLayout을 임포트합니다.
 ---
 
-<Layout>
-	<Welcome />
-</Layout>
+<BaseLayout title="환영합니다!">
+	<article style="text-align:center; padding-top: 5rem;">
+		<h1>환영합니다!</h1>
+		<p>이곳은 긷다의 지식 창고입니다.</p>
+		<p>
+			<a href="/wiki" style="font-size: 1.2rem; font-weight: bold;">
+				→ 위키 둘러보기
+			</a>
+		</p>
+	</article>
+</BaseLayout>
+
+<style>
+	/* 이 스타일은 이 페이지에만 적용됩니다. */
+	article {
+		max-width: 700px;
+		margin: 0 auto;
+		padding: 2rem;
+	}
+</style>
