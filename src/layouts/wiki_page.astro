@@ -32,6 +32,13 @@ const { title } = Astro.props;
       margin-top: 3rem;
       margin-bottom: 1.5rem;
     }
+    /* 또는 더 구체적으로 긴 URL만 타겟팅 */
+    article a[href*="://"] {
+      word-break: break-all;
+      overflow-wrap: break-word;
+      max-width: 100%;
+      display: inline-block;
+    }
     /* --- 각주 폰트 크기 조정 --- */
     .footnote-backref {
       font-size: 0.66rem;
