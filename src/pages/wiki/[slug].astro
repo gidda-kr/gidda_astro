@@ -1,5 +1,5 @@
 ---
-import MinLayout from '../../layouts/MinLayout.astro';
+import WikiPage from '../../layouts/wiki_page.astro';
 import { Remarkable } from 'remarkable';
 
 // Remarkable 인스턴스를 생성하고 각주 기능을 활성화합니다.
@@ -54,9 +54,9 @@ const { wiki } = Astro.props;
 const htmlContent = md.render(wiki.content || '');
 ---
 
-<MinLayout title={wiki.title}>
+<WikiPage title={wiki.title}>
   <article>
     <h1>{wiki.title}</h1>
     <Fragment set:html={htmlContent} />
   </article>
-</MinLayout>
+</WikiPage>

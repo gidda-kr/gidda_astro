@@ -1,5 +1,5 @@
 ---
-import MinLayout from '../../layouts/MinLayout.astro';
+import WikiPage from '../../layouts/wiki_page.astro';
 
 // 1. Astro 빌드 시점에 Strapi API에서 모든 위키 항목을 가져옵니다.
 const strapiUrl = 'https://strapi-app-63132904920.asia-northeast3.run.app'; // <-- 여기에 실제 URL을 입력하세요!
@@ -21,7 +21,7 @@ try {
 wikis.sort((a, b) => a.title.localeCompare(b.title));
 ---
 
-<MinLayout title="위키 목록">
+<WikiPage title="위키 목록">
   <article>
     <h1>전체 위키 목록</h1>
     <p>총 {wikis.length}개의 위키 항목이 있습니다.</p>
@@ -38,7 +38,7 @@ wikis.sort((a, b) => a.title.localeCompare(b.title));
       </ul>
     )}
   </article>
-</MinLayout>
+</WikiPage>
 
 <style>
   .wiki-list {
