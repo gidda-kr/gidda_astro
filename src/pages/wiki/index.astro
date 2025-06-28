@@ -1,29 +1,32 @@
 ---
-import WikiPage from '../../layouts/wiki_page.astro';
+import WikiPageLayout from '../../layouts/wiki_page.astro';
 
-// 1. Astro 빌드 시점에 Strapi API에서 모든 위키 항목을 가져옵니다.
+// 1. Astro 빌드 시점에 Strapi API에서 위키 항목의 'title'과 'slug'만 가져옵니다.
 const strapiUrl = 'https://strapi-app-63132904920.asia-northeast3.run.app';
 const apiPath = '/api/wikis';
-const queryParams = '?populate=*';
+// ✨ 여기를 수정했습니다: `fields` 파라미터를 사용하여 필요한 필드만 요청합니다.
+const queryParams = '?sort=publishedAt:desc&fields[0]=title&fields[1]=slug';
 
 let wikis = [];
 try {
   const response = await fetch(`${strapiUrl}${apiPath}${queryParams}`);
   const jsonData = await response.json();
   if (jsonData.data) {
-    wikis = jsonData.data;
+    // ✨ Strapi 응답 구조에 맞게 데이터를 추출합니다.
+    wikis = jsonData.data.map(item => ({
+      ...item.attributes,
+      id: item.id
+    }));
   }
 } catch (error) {
   console.error('Strapi API에서 위키 목록을 가져오는 데 실패했습니다:', error);
 }
-
-// 2. 제목을 기준으로 위키 목록을 정렬합니다.
-wikis.sort((a, b) => a.title.localeCompare(b.title));
 ---
 
-<WikiPage title="위키 목록">
+<WikiPageLayout title="위키 목록">
   <article>
     <h1>전체 위키 목록</h1>
+    {/* ✨ 페이지네이션이 없으므로, 전체 항목 수를 바로 표시합니다. */}
     <p>총 {wikis.length}개의 위키 항목이 있습니다.</p>
 
     {wikis.length === 0 ? (
@@ -39,10 +42,12 @@ wikis.sort((a, b) => a.title.localeCompare(b.title));
           ))}
         </ul>
     )}
+
   </article>
-</WikiPage>
+</WikiPageLayout>
 
 <style>
+  /* 스타일은 이전과 동일합니다. */
   .wiki-list {
     list-style: none;
     padding: 0;
@@ -52,13 +57,11 @@ wikis.sort((a, b) => a.title.localeCompare(b.title));
     align-items: stretch;
   }
   .wiki-card {
-    /* 카드 기본 스타일 */
-    background-color: #fcfcfc; /* 카드 배경을 아주 미세한 오프 화이트로 설정 */
+    background-color: #fcfcfc;
     margin-bottom: 0;
     padding: 1.2rem;
     min-height: 120px;
     border-radius: 12px;
-    /* 그림자를 더 부드럽게 변경 */
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     display: flex;
@@ -66,7 +69,6 @@ wikis.sort((a, b) => a.title.localeCompare(b.title));
     justify-content: center;
   }
   .wiki-card:hover {
-    /* 호버 시 그림자를 더 진하고 넓게 변경 */
     transform: translateY(-5px);
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
     cursor: pointer;
@@ -75,14 +77,10 @@ wikis.sort((a, b) => a.title.localeCompare(b.title));
     display: block;
     text-decoration: none;
   }
-  .wiki-card a:hover {
-    text-decoration: none;
-  }
   .wiki-card h2 {
     font-size: 1.5rem;
     margin: 0;
     line-height: 1.3;
     text-align: center;
-    /* h2는 a 태그 안에 있으므로 색상을 따로 지정할 필요 없습니다. */
   }
 </style>
