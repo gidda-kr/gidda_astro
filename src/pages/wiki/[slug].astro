@@ -1,6 +1,7 @@
 ---
-import WikiPage from '../../layouts/wiki_page.astro';
+import WikiPageLayout from '../../layouts/wiki_page.astro';
 import { Remarkable } from 'remarkable';
+import * as cheerio from 'cheerio'; // ✨ cheerio 라이브러리를 임포트합니다.
 
 // Remarkable 인스턴스를 생성하고 각주 기능을 활성화합니다.
 const md = new Remarkable({
@@ -10,53 +11,137 @@ const md = new Remarkable({
   footnotes: true,
 });
 
-// Astro 빌드 시점에 Strapi API에서 데이터를 가져와서 페이지를 생성합니다.
-export async function getStaticPaths() {
-  // --- 여기에 Cloud Run Strapi API 주소를 입력하세요 ---
-  const strapiUrl = 'https://strapi-app-63132904920.asia-northeast3.run.app/';
-  const apiPath = '/api/wikis';
-  const queryParams = '?populate=*';
+// 1. Astro 빌드 시점에 Strapi에서 모든 위키 항목의 슬러그를 가져옵니다.
+const strapiUrl = 'https://strapi-app-63132904920.asia-northeast3.run.app';
+const allWikiSlugs = new Set();
+try {
+  const response = await fetch(`${strapiUrl}/api/wikis?fields[0]=slug`);
+  const jsonData = await response.json();
+  if (jsonData.data) {
+    jsonData.data.forEach(item => {
+      if (item.attributes && item.attributes.slug) {
+        allWikiSlugs.add(item.attributes.slug);
+      } else if (item.slug) {
+        allWikiSlugs.add(item.slug);
+      }
+    });
+  }
+} catch (error) {
+  console.error('모든 위키 슬러그를 가져오는 데 실패했습니다:', error);
+}
 
+// 2. 현재 페이지의 상세 데이터를 가져와서 페이지를 생성합니다.
+export async function getStaticPaths() {
+  const strapiUrlForPaths = 'https://strapi-app-63132904920.asia-northeast3.run.app/';
+  const apiPath = '/api/wikis';
   try {
-    const response = await fetch(`${strapiUrl}${apiPath}${queryParams}`);
+    const response = await fetch(`${strapiUrlForPaths}${apiPath}?fields[0]=slug`);
     if (!response.ok) {
-        console.error(`Strapi API 호출 실패: ${response.status} ${response.statusText}`);
-        return [];
+      console.error(`getStaticPaths Strapi API 호출 실패: ${response.status} ${response.statusText}`);
+      return [];
     }
     const jsonData = await response.json();
     const wikis = jsonData.data;
-
     if (!wikis || wikis.length === 0) {
-      console.warn('Strapi API에서 데이터를 가져오지 못했거나, 데이터가 비어 있습니다.');
+      console.warn('getStaticPaths: Strapi API에서 데이터를 가져오지 못했거나, 데이터가 비어 있습니다.');
       return [];
     }
-
     return wikis.map((wiki) => {
-      if (!wiki.slug) {
-        console.error('slug 속성이 없는 위키 항목:', wiki);
+      const slug = (wiki.attributes && wiki.attributes.slug) ? wiki.attributes.slug : wiki.slug;
+      if (!slug) {
+        console.error('getStaticPaths: slug 속성이 없는 위키 항목:', wiki);
         return null;
       }
       return {
-        params: { slug: wiki.slug },
+        params: { slug: slug },
         props: { wiki: wiki },
       };
     }).filter(Boolean);
   } catch (error) {
-    console.error('API 호출 중 예외 발생:', error);
+    console.error('getStaticPaths API 호출 중 예외 발생:', error);
     return [];
   }
 }
 
-const { wiki } = Astro.props;
+const { wiki: rawWikiData } = Astro.props;
+const strapiUrlForDetail = 'https://strapi-app-63132904920.asia-northeast3.run.app';
+const currentWikiApiPath = `/api/wikis?filters[slug][$eq]=${rawWikiData.slug}&populate=*`;
+let wikiEntry = null;
+try {
+  const response = await fetch(`${strapiUrlForDetail}${currentWikiApiPath}`);
+  const jsonData = await response.json();
+  if (jsonData.data && jsonData.data.length > 0) {
+    wikiEntry = (jsonData.data[0].attributes) ? jsonData.data[0].attributes : jsonData.data[0];
+  }
+} catch (error) {
+  console.error('위키 항목 상세 정보를 가져오는 데 실패했습니다:', error);
+}
 
-// Remarkable을 사용하여 마크다운 콘텐츠를 HTML로 변환합니다.
-// 이 코드는 이제 [[...]] 문법을 처리하지 않습니다.
-const htmlContent = md.render(wiki.content || '');
+// 1. Strapi에서 가져온 마크다운 본문을 Remarkable을 사용해 HTML로 변환합니다.
+import { markdown } from 'astro/components';
+let processedMarkdownContent = wikiEntry?.content || '';
+const htmlContentFromMarkdown = md.render(processedMarkdownContent);
+
+// ✨✨✨ 2. 변환된 HTML을 cheerio로 파싱하고 <a> 태그를 찾아 수정합니다. ✨✨✨
+let finalHtmlContent = '';
+if (htmlContentFromMarkdown) {
+  const $ = cheerio.load(htmlContentFromMarkdown); // HTML을 로드하여 DOM처럼 조작
+
+  // <a> 태그를 모두 찾습니다.
+  $('a').each((i, el) => {
+    const href = $(el).attr('href'); // href 속성 가져오기
+    if (href) {
+      // 💡 링크가 각주 링크(#fn:1)나 내부 앵커(#heading)인지 확인합니다.
+      if (href.startsWith('#')) {
+        // 각주 링크는 그대로 둡니다.
+        return; // 다음 <a> 태그로 넘어갑니다.
+      }
+
+      // 💡 내부 위키 링크인지 확인합니다.
+      if (href.startsWith('/wiki/')) {
+        const linkSlug = href.substring('/wiki/'.length);
+
+        // 슬러그가 존재하지 않는지 확인
+        if (!allWikiSlugs.has(linkSlug)) {
+          // 존재하지 않으면 'red-link' 클래스를 추가하고 href를 '페이지 생성' 링크로 바꿉니다.
+          const linkText = $(el).text();
+          const encodedTitle = encodeURIComponent(linkText);
+          $(el).addClass('red-link').attr('href', `/create-wiki?title=${encodedTitle}`);
+        }
+      }
+    }
+  });
+
+  // 수정된 HTML을 다시 문자열로 가져옵니다.
+  finalHtmlContent = $.html();
+}
 ---
 
-<WikiPage title={wiki.title}>
+<WikiPageLayout title={wikiEntry?.title || '페이지 없음'}>
   <article>
-    <h1>{wiki.title}</h1>
-    <Fragment set:html={htmlContent} />
+    {wikiEntry ? (
+        <>
+          <h1>{wikiEntry.title}</h1>
+          {/* ✨ 변환된 최종 HTML 내용을 표시합니다. */}
+          <Fragment set:html={finalHtmlContent} />
+        </>
+    ) : (
+        <p>해당 위키 항목을 찾을 수 없습니다.</p>
+    )}
   </article>
-</WikiPage>
+</WikiPageLayout>
+
+<style is:global>
+  .red-link {
+    color: #ff6666; /* 살짝 연한 빨강 */
+    text-decoration: none;
+  }
+  .red-link:hover {
+    color: #ff3333;
+    text-decoration: none;
+  }
+  /* BaseLayout에서 설정한 스타일과 충돌하지 않도록 명시적으로 선택자를 사용합니다. */
+  .wiki-content-container a.red-link {
+    color: #ff6666;
+  }
+</style>
