@@ -1,11 +1,8 @@
 ---
 import BaseLayout from './BaseLayout.astro';
 
-// 1. 필요한 Props를 정의합니다.
 export interface Props {
     title: string;
-    // ✨✨✨ author prop의 타입을 API 응답에 맞게 다시 수정합니다. ✨✨✨
-    // author는 바로 name을 가지는 객체일 수도 있고, null 또는 undefined일 수 있습니다.
     author: { name: string; id: number; documentId?: string; } | null | undefined;
     publishedAt: string;
     coverImage?: {
@@ -14,10 +11,8 @@ export interface Props {
     };
 }
 
-// 2. Astro.props에서 필요한 데이터를 꺼내옵니다.
 const { title, author, publishedAt, coverImage } = Astro.props;
 
-// 3. 발행일을 보기 좋게 포맷팅합니다.
 const formattedDate = new Date(publishedAt).toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: 'long',
@@ -38,10 +33,9 @@ const formattedDate = new Date(publishedAt).toLocaleDateString('ko-KR', {
             )}
             <h1 class="article-title">{title}</h1>
             <div class="article-meta">
-                {/* ✨✨✨ 이 부분을 다시 수정합니다: author?.name으로 접근 ✨✨✨ */}
-                <span>By {author?.name || '작성자 미지정'}</span>
-                <span>•</span>
-                <span>{formattedDate}</span>
+                <span class="author">By {author?.name || '작성자 미지정'}</span>
+                <span class="separator">•</span>
+                <span class="date">{formattedDate}</span>
             </div>
         </header>
 
@@ -51,62 +45,218 @@ const formattedDate = new Date(publishedAt).toLocaleDateString('ko-KR', {
     </div>
 
     <style is:global>
+        /* 웹폰트 로드 */
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap');
+
         .webzine-content-container {
-            max-width: 900px;
+            max-width: 700px;
             margin: 2rem auto;
             padding: 1rem 2rem;
-            line-height: 1.8;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+            color: #1a1a1a;
+            line-height: 1.75;
         }
 
         .article-header {
             text-align: center;
-            margin-bottom: 3rem;
+            margin-bottom: 4rem;
+            border-bottom: 1px solid #e8e8e8;
+            padding-bottom: 3rem;
         }
+
         .cover-image {
             width: 100%;
             max-height: 450px;
             object-fit: cover;
             border-radius: 12px;
-            margin-bottom: 2rem;
-        }
-        .article-title {
-            font-size: 2.5rem;
-            font-weight: 700;
-            line-height: 1.2;
-            margin-bottom: 1rem;
-            color: #2c3e50;
-        }
-        .article-meta {
-            font-size: 0.95rem;
-            color: #7f8c8d;
-            font-weight: bold;
-        }
-        .article-meta span {
-            margin: 0 0.5rem;
+            margin-bottom: 2.5rem;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
         }
 
-        .article-body h1, .article-body h2, .article-body h3 {
-            font-family: 'Georgia', serif;
+        .article-title {
+            font-size: clamp(2rem, 4vw, 2.75rem);
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 1.5rem;
+            color: #1a1a1a;
+            letter-spacing: -0.02em;
+            /* ✨ 여기를 수정했습니다: `word-break: keep-all;` 제거 */
+        }
+
+        .article-meta {
+            font-size: 0.9rem;
+            color: #666;
+            font-weight: 400;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+
+        .article-meta .author {
+            font-weight: 500;
+            color: #444;
+        }
+
+        .article-meta .separator {
+            color: #999;
+            font-weight: 300;
+        }
+
+        .article-meta .date {
+            color: #666;
+        }
+
+        /* 본문 타이포그래피 */
+        .article-body {
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #2a2a2a;
+        }
+
+        .article-body h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1.3;
+            margin-top: 3.5rem;
+            margin-bottom: 1.5rem;
+            color: #1a1a1a;
+            letter-spacing: -0.01em;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 0.5rem;
+        }
+
+        .article-body h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
             line-height: 1.4;
             margin-top: 3rem;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.25rem;
+            color: #222;
+            letter-spacing: -0.01em;
         }
+
+        .article-body h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
         .article-body p {
-            margin-bottom: 1.5rem;
-            font-size: 1.1rem;
+            margin-bottom: 1.75rem;
+            text-align: left;
+            /* ✨ 여기를 수정했습니다: `word-break: keep-all;` 제거 */
+            /* `overflow-wrap: break-word;`는 일반적으로 유지해도 좋습니다. */
+            word-spacing: normal;
+            letter-spacing: normal;
+        }
+
+        /* URL과 긴 텍스트 처리 */
+        .article-body a[href*="://"] {
+            word-break: break-all; /* 긴 URL은 단어 중간에 잘려야 합니다. */
+            overflow-wrap: break-word;
+            max-width: 100%;
+            display: inline-block;
+        }
+
+        /* 강조 텍스트 */
+        .article-body strong {
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .article-body em {
+            font-style: italic;
+            color: #444;
+        }
+
+        /* 링크 스타일 - BaseLayout 전역 스타일 사용 */
+        .article-body a {
+            /* BaseLayout의 전역 a 스타일을 그대로 사용하기 위해 재정의하지 않음 */
+        }
+
+        .article-body a:hover {
+            /* BaseLayout의 전역 a:hover 스타일을 그대로 사용하기 위해 재정의하지 않음 */
+        }
+
+        /* 인용구 스타일 */
+        .article-body blockquote {
+            margin: 2rem 0;
+            padding: 1.5rem 2rem;
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            font-style: italic;
+            color: #555;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .article-body blockquote p {
+            margin-bottom: 0;
+        }
+
+        /* 리스트 스타일 */
+        .article-body ul, .article-body ol {
+            margin: 1.5rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .article-body li {
+            margin-bottom: 0.5rem;
+            line-height: 1.7;
         }
 
         .page-type-label {
             display: inline-block;
-            background-color: #d4e9d7;
-            color: #355E3B;
-            font-size: 0.85rem;
-            font-weight: bold;
+            background: #355E3B;
+            color: white;
+            font-size: 0.75rem;
+            font-weight: 600;
             letter-spacing: 0.1em;
             text-transform: uppercase;
-            padding: 0.25rem 0.75rem;
-            border-radius: 4px;
-            margin-bottom: 1.5rem;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            margin-bottom: 2rem;
+        }
+
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .webzine-content-container {
+                padding: 1rem 1.5rem;
+                margin: 1rem auto;
+            }
+
+            .article-header {
+                margin-bottom: 3rem;
+                padding-bottom: 2rem;
+            }
+
+            .article-title {
+                font-size: 1.75rem;
+                margin-bottom: 1rem;
+            }
+
+            .article-meta {
+                font-size: 0.85rem;
+                flex-direction: column;
+                gap: 0.5rem;
+            }
+
+            .article-body {
+                font-size: 1rem;
+            }
+
+            .article-body h1 {
+                font-size: 1.5rem;
+                margin-top: 2.5rem;
+            }
+
+            .article-body h2 {
+                font-size: 1.25rem;
+                margin-top: 2rem;
+            }
         }
     </style>
 </BaseLayout>
