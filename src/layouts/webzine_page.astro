@@ -1,0 +1,112 @@
+---
+import BaseLayout from './BaseLayout.astro';
+
+// 1. 필요한 Props를 정의합니다.
+export interface Props {
+    title: string;
+    // ✨✨✨ author prop의 타입을 API 응답에 맞게 다시 수정합니다. ✨✨✨
+    // author는 바로 name을 가지는 객체일 수도 있고, null 또는 undefined일 수 있습니다.
+    author: { name: string; id: number; documentId?: string; } | null | undefined;
+    publishedAt: string;
+    coverImage?: {
+        url: string;
+        alt: string;
+    };
+}
+
+// 2. Astro.props에서 필요한 데이터를 꺼내옵니다.
+const { title, author, publishedAt, coverImage } = Astro.props;
+
+// 3. 발행일을 보기 좋게 포맷팅합니다.
+const formattedDate = new Date(publishedAt).toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+});
+---
+
+<BaseLayout title={title}>
+    <div class="webzine-content-container">
+
+        <div class="page-type-label">
+            WEBMAGAZINE
+        </div>
+
+        <header class="article-header">
+            {coverImage && (
+                    <img src={coverImage.url} alt={coverImage.alt} class="cover-image" />
+            )}
+            <h1 class="article-title">{title}</h1>
+            <div class="article-meta">
+                {/* ✨✨✨ 이 부분을 다시 수정합니다: author?.name으로 접근 ✨✨✨ */}
+                <span>By {author?.name || '작성자 미지정'}</span>
+                <span>•</span>
+                <span>{formattedDate}</span>
+            </div>
+        </header>
+
+        <main class="article-body">
+            <slot />
+        </main>
+    </div>
+
+    <style is:global>
+        .webzine-content-container {
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 1rem 2rem;
+            line-height: 1.8;
+        }
+
+        .article-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .cover-image {
+            width: 100%;
+            max-height: 450px;
+            object-fit: cover;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+        }
+        .article-title {
+            font-size: 2.5rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 1rem;
+            color: #2c3e50;
+        }
+        .article-meta {
+            font-size: 0.95rem;
+            color: #7f8c8d;
+            font-weight: bold;
+        }
+        .article-meta span {
+            margin: 0 0.5rem;
+        }
+
+        .article-body h1, .article-body h2, .article-body h3 {
+            font-family: 'Georgia', serif;
+            line-height: 1.4;
+            margin-top: 3rem;
+            margin-bottom: 1.5rem;
+        }
+        .article-body p {
+            margin-bottom: 1.5rem;
+            font-size: 1.1rem;
+        }
+
+        .page-type-label {
+            display: inline-block;
+            background-color: #d4e9d7;
+            color: #355E3B;
+            font-size: 0.85rem;
+            font-weight: bold;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</BaseLayout>
