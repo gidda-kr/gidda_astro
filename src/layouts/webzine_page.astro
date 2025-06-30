@@ -13,9 +13,6 @@ export interface Props {
 
 const { title, author, publishedAt, featuredImage } = Astro.props;
 
-// ✨ 디버깅: featuredImage prop 확인
-console.log('Layout에서 받은 featuredImage:', featuredImage);
-
 const formattedDate = new Date(publishedAt).toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: 'long',
@@ -23,7 +20,12 @@ const formattedDate = new Date(publishedAt).toLocaleDateString('ko-KR', {
 });
 ---
 
-<BaseLayout title={title}>
+<BaseLayout
+        title={title}
+        description={`${title} - 긷다 웹진`}
+        image={featuredImage?.url || '/default-og-image.jpg'}
+        type="article"
+>
     <div class="webzine-content-container">
 
         <div class="page-type-label">

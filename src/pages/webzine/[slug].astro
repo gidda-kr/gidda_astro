@@ -65,14 +65,9 @@ try {
         console.error(`상세 API 실패: ${response.status}`);
     } else {
         const jsonData = await response.json();
-        console.log('API 응답:', JSON.stringify(jsonData, null, 2));
 
         if (jsonData.data && jsonData.data.length > 0) {
             const rawEntry = jsonData.data[0];
-
-            // ✨ 디버깅: rawEntry 전체 구조 확인
-            console.log('rawEntry 전체:', JSON.stringify(rawEntry, null, 2));
-            console.log('featuredImage 데이터:', rawEntry.featuredImage);
 
             // Strapi v5 구조에 맞게 데이터 추출 (attributes 없음)
             articleEntry = {
@@ -94,7 +89,6 @@ try {
             };
 
             // ✨ 추가 디버깅: 최종 articleEntry 확인
-            console.log('최종 articleEntry.featuredImage:', articleEntry.featuredImage);
         }
     }
 } catch (error) {
