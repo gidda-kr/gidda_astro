@@ -52,13 +52,16 @@ const {
     <!-- End Google Tag Manager -->
 
     <style is:global>
+        /* BaseLayout의 <style is:global> 섹션 맨 위에 추가 */
+        @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap');
         /* --- 모든 페이지에 적용되는 전역 스타일 --- */
+        /* 기존 body 스타일 수정 */
         body {
-            font-family: Arial, sans-serif;
+            font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, Arial, sans-serif;
             line-height: 1.6;
             margin: 0;
             padding: 0;
-            background-color: #fbf8f0; /* 배경색을 종이 질감에 가까운 색상으로 변경 */
+            background-color: #fbf8f0;
             color: #333230;
             display: flex;
             flex-direction: column;
