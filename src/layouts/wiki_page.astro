@@ -1,99 +1,286 @@
 ---
 import BaseLayout from './BaseLayout.astro';
+
 export interface Props {
   title: string;
+  description?: string;
 }
 
-const { title } = Astro.props;
+const { title, description } = Astro.props;
 ---
 
-<BaseLayout title={title}>
+<BaseLayout
+    title={title}
+    description={description || `${title} - 긷다 위키`}
+    type="article"
+>
   <div class="wiki-content-container">
-
     <div class="page-type-label">
       WIKI
     </div>
 
-    <slot />
+    <main class="wiki-body">
+      <slot />
+    </main>
   </div>
 
   <style is:global>
-    /* 이 스타일은 위키 페이지 레이아웃에만 적용됩니다. */
+    /* 웹폰트 로드 */
+    @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap');
+
     .wiki-content-container {
       max-width: 800px;
       margin: 2rem auto;
       padding: 1rem 2rem;
+      font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+      color: #1a1a1a;
+      line-height: 1.7;
     }
-    /* --- h1, h2 폰트 크기 조정 --- */
-    .wiki-content-container h1 {
-      font-size: 2rem;
-      border-bottom: 2px solid #ccc;
-      padding-bottom: 0.5rem;
+
+    .page-type-label {
+      display: inline-block;
+      background: #355E3B;
+      color: white;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      padding: 0.5rem 1rem;
+      border-radius: 20px;
       margin-bottom: 2rem;
     }
-    .wiki-content-container h2 {
-      font-size: 1.5rem;
+
+    .wiki-body {
+      font-size: 1rem;
+      line-height: 1.7;
+      color: #2a2a2a;
+    }
+
+    .wiki-body h1 {
+      font-size: 1.75rem;
+      font-weight: 700;
+      line-height: 1.3;
       margin-top: 3rem;
       margin-bottom: 1.5rem;
+      color: #1a1a1a;
+      letter-spacing: -0.01em;
+      border-bottom: 2px solid #e8e8e8;
+      padding-bottom: 0.75rem;
     }
-    /* ✨✨✨ wiki-content-container 내부 이미지 스타일 추가 ✨✨✨ */
-    .wiki-content-container img {
-      max-width: 100%; /* 부모 요소 너비 넘지 않도록 */
-      height: auto;    /* 가로세로 비율 유지 */
-      display: block;  /* 블록 요소로 만들어 줄바꿈 및 중앙 정렬 용이 */
-      margin: 1.5rem auto; /* 상하 여백 및 중앙 정렬 (선택적) */
-      border-radius: 8px; /* 모서리 둥글게 */
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* 은은한 그림자 */
+
+    .wiki-body h2 {
+      font-size: 1.5rem;
+      font-weight: 600;
+      line-height: 1.4;
+      margin-top: 2.5rem;
+      margin-bottom: 1.25rem;
+      color: #222;
+      letter-spacing: -0.01em;
     }
-    /* --- 각주 폰트 크기 조정 --- */
+
+    .wiki-body h3 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      line-height: 1.4;
+      margin-top: 2rem;
+      margin-bottom: 1rem;
+      color: #333;
+    }
+
+    .wiki-body p {
+      margin-bottom: 1.5rem;
+      text-align: left;
+      word-spacing: normal;
+      letter-spacing: normal;
+    }
+
+    /* 이미지 스타일 */
+    .wiki-body img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      margin: 2rem auto;
+      border-radius: 8px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+      border: 1px solid #e8e8e8;
+    }
+
+    .wiki-body img[width] {
+      width: auto;
+      max-width: 100%;
+    }
+
+    /* URL과 긴 텍스트 처리 */
+    .wiki-body a[href*="://"] {
+      word-break: break-all;
+      overflow-wrap: break-word;
+      max-width: 100%;
+      display: inline-block;
+    }
+
+    /* 강조 텍스트 */
+    .wiki-body strong {
+      font-weight: 600;
+      color: #1a1a1a;
+    }
+
+    .wiki-body em {
+      font-style: italic;
+      color: #444;
+    }
+
+    /* 인용구 스타일 - 심플하게 */
+    .wiki-body blockquote {
+      margin: 2rem 0;
+      padding: 1rem 1.5rem;
+      background-color: #f9f9f9;
+      border-left: 4px solid #ccc;
+      font-style: italic;
+      color: #555;
+    }
+
+    .wiki-body blockquote p {
+      margin-bottom: 0;
+    }
+
+    /* 리스트 스타일 */
+    .wiki-body ul, .wiki-body ol {
+      margin: 1.5rem 0;
+      padding-left: 1.5rem;
+    }
+
+    .wiki-body ul li {
+      position: relative;
+      margin-bottom: 0.5rem;
+      line-height: 1.7;
+    }
+
+    .wiki-body ul li::marker {
+      color: #355E3B;
+    }
+
+    .wiki-body ol li::marker {
+      color: #355E3B;
+      font-weight: 600;
+    }
+
+    /* 테이블 스타일 */
+    .wiki-body table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 2rem 0;
+      font-size: 0.9rem;
+      background: white;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .wiki-body table thead {
+      background: #f8fafc;
+    }
+
+    .wiki-body table th {
+      padding: 1rem;
+      text-align: left;
+      font-weight: 600;
+      color: #374151;
+      border-bottom: 2px solid #e5e7eb;
+    }
+
+    .wiki-body table td {
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid #f3f4f6;
+    }
+
+    .wiki-body table tr:hover {
+      background: #fafbfc;
+    }
+
+    /* 코드 블록 처리 */
+    .wiki-body pre {
+      overflow-x: auto;
+      background: #1f2937;
+      color: #f9fafb;
+      padding: 1.5rem;
+      border-radius: 8px;
+      margin: 2rem 0;
+      font-size: 0.9rem;
+      line-height: 1.5;
+    }
+
+    .wiki-body code {
+      background: #f3f4f6;
+      color: #374151;
+      padding: 0.2rem 0.4rem;
+      border-radius: 4px;
+      font-size: 0.9em;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+    }
+
+    .wiki-body pre code {
+      background: none;
+      color: inherit;
+      padding: 0;
+    }
+
+    /* 각주 스타일 - 원래대로 */
     .footnote-backref {
       font-size: 0.66rem;
     }
+
     .footnotes {
       margin-top: 0.5rem;
       padding-top: 0.5rem;
       font-size: 0.8rem;
     }
+
     .footnotes p {
       font-size: 0.8rem;
       margin-bottom: 0.5rem;
     }
 
-    /* ✨ 웹진 레이아웃과 동일하게 수정된 레이블 스타일 */
-    .page-type-label {
-      display: inline-block;
-      background: #355E3B; /* 웹진과 동일한 짙은 녹색 배경 */
-      color: white; /* 흰색 글자 */
-      font-size: 0.75rem; /* 웹진과 동일한 글자 크기 */
-      font-weight: 600; /* 웹진과 동일한 굵기 */
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 0.5rem 1rem; /* 웹진과 동일한 패딩 */
-      border-radius: 20px; /* 웹진과 동일한 둥근 모서리 */
-      margin-bottom: 2rem; /* 웹진과 동일한 간격 */
+    /* 각주 번호 링크 색상 - 일반 링크와 동일하게 */
+    .wiki-body a[href^="#fn:"],
+    .wiki-body a[href^="#fnref:"] {
+      color: inherit; /* BaseLayout의 링크 색상 사용 */
     }
 
-    /* --- 인용문(blockquote) 스타일 추가 --- */
-    .wiki-content-container blockquote {
-      /* 왼쪽에 굵은 회색 세로선 추가 */
-      border-left: 4px solid #ccc;
-      /* 내부 여백 */
-      padding: 1rem 1.5rem;
-      /* 외부 여백 */
-      margin: 2rem 0;
-      /* 배경색을 살짝 회색으로 */
-      background-color: #f9f9f9;
-      /* 글자 스타일 */
-      font-style: italic; /* 기울임꼴 */
-      color: #555;
-    }
+    /* 반응형 */
+    @media (max-width: 768px) {
+      .wiki-content-container {
+        padding: 1rem 1.5rem;
+        margin: 1rem auto;
+      }
 
-    /* 또는 더 구체적으로 긴 URL만 타겟팅 */
-    article a[href*="://"] {
-      word-break: break-all;
-      overflow-wrap: break-word;
-      max-width: 100%;
-      display: inline-block;
+      .wiki-body {
+        font-size: 1rem;
+      }
+
+      .wiki-body h1 {
+        font-size: 1.5rem;
+        margin-top: 2rem;
+      }
+
+      .wiki-body h2 {
+        font-size: 1.25rem;
+        margin-top: 2rem;
+      }
+
+      .wiki-body img {
+        margin: 1.5rem auto;
+      }
+
+      .wiki-body table {
+        font-size: 0.8rem;
+        overflow-x: auto;
+        display: block;
+        white-space: nowrap;
+      }
+
+      .footnotes {
+        padding: 1.5rem;
+      }
     }
   </style>
 </BaseLayout>
