@@ -1,29 +1,49 @@
 ---
-import BaseLayout from '../layouts/BaseLayout.astro'; // <-- BaseLayout을 임포트합니다.
+import BaseLayout from '../layouts/BaseLayout.astro';
 ---
 
 <BaseLayout title="환영합니다!">
-	<article style="text-align:center; padding-top: 5rem;">
-		<h1>환영합니다!</h1>
-		<p>이곳은 긷다의 지식 창고입니다.</p>
-		<p>
-			<a href="/wiki" style="font-size: 1.2rem; font-weight: bold;">
-				→ 위키 둘러보기
-			</a>
-		</p>
-		<p>
-			<a href="/webzine" style="font-size: 1.2rem; font-weight: bold;">
-				→ 웹진 둘러보기
-			</a>
-		</p>
-	</article>
+	<div class="welcome-page">
+		<div class="welcome-content">
+			<h1>환영합니다!</h1>
+			<p>이곳은 긷다의 지식 창고입니다.</p>
+			<p>
+				<a href="/wiki" class="nav-link">
+					→ 위키 둘러보기
+				</a>
+			</p>
+			<p>
+				<a href="/webzine" class="nav-link">
+					→ 웹진 둘러보기
+				</a>
+			</p>
+		</div>
+	</div>
 </BaseLayout>
 
 <style>
-	/* 이 스타일은 이 페이지에만 적용됩니다. */
-	article {
+	/* article 태그 대신 고유한 클래스 사용 */
+	.welcome-page {
+		width: 100%;
+		padding-top: 5rem;
+		text-align: center;
+	}
+
+	.welcome-content {
 		max-width: 700px;
 		margin: 0 auto;
 		padding: 2rem;
+		/* 다른 요소에 영향주지 않도록 완전히 격리 */
+		isolation: isolate;
+	}
+
+	.nav-link {
+		font-size: 1.2rem;
+		font-weight: bold;
+		text-decoration: none;
+	}
+
+	.nav-link:hover {
+		text-decoration: underline;
 	}
 </style>

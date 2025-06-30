@@ -7,7 +7,7 @@ const strapiUrl = 'https://strapi-app-63132904920.asia-northeast3.run.app';
 const apiPath = '/api/webzine-articles';
 
 // queryParams: 원래 잘 작동하던 쿼리 + featuredImage 추가
-const queryParams = '?populate[author][fields]=name&populate=featuredImage&sort=publishedAt:desc&fields[0]=title&fields[1]=slug&fields[2]=publishedAt';
+const queryParams = '?populate[author][fields]=name&populate=featuredImage&sort=publishedat:desc&fields[0]=title&fields[1]=slug&fields[2]=publishedat';
 
 let articles = [];
 try {
@@ -74,7 +74,7 @@ try {
                                             <span class="author">{article.authorName}</span>
                                             <span class="separator">•</span>
                                             <span class="date">
-                                                {new Date(article.publishedAt).toLocaleDateString('ko-KR', {
+                                                {new Date(article.publishedat).toLocaleDateString('ko-KR', {
                                                     year: 'numeric',
                                                     month: 'long',
                                                     day: 'numeric'

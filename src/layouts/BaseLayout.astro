@@ -52,6 +52,9 @@ const {
     <!-- End Google Tag Manager -->
 
     <style is:global>
+        html {
+            overflow-y: scroll; /* 항상 스크롤바 공간 확보 */
+        }
         /* BaseLayout의 <style is:global> 섹션 맨 위에 추가 */
         @import url('https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&display=swap');
         /* --- 모든 페이지에 적용되는 전역 스타일 --- */
@@ -147,12 +150,12 @@ const {
             width: 100%;
             display: flex;
             align-items: flex-end;
-            justify-content: center;
+            justify-content: right;
             height: 100%;
         }
 
         .main-nav a {
-            margin: 0 2rem; /* 간격 늘림 */
+            margin: 0 2.5rem; /* 간격 늘림 */
             font-weight: normal;
             font-size: 1.3rem; /* 네비게이션 폰트 크기 증가 (1.1rem -> 1.3rem) */
             color: #333230;
