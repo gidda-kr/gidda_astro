@@ -76,7 +76,7 @@ try {
                 title: rawEntry.title,
                 content: rawEntry.content,
                 slug: rawEntry.slug,
-                publishedAt: rawEntry.publishedAt || rawEntry.publishedat,
+                publishedat: rawEntry.publishedat || rawEntry.publishedat,
                 createdAt: rawEntry.createdAt,
                 updatedAt: rawEntry.updatedAt,
                 // author 처리
@@ -102,7 +102,7 @@ const htmlContent = articleEntry?.content ? md.render(articleEntry.content) : ''
 <WebzineArticleLayout
         title={articleEntry?.title || '기사 없음'}
         author={articleEntry?.author}
-        publishedAt={articleEntry?.publishedAt || ''}
+        publishedat={articleEntry?.publishedat || ''}
         featuredImage={articleEntry?.featuredImage}
 >
     <article>

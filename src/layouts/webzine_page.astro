@@ -4,16 +4,16 @@ import BaseLayout from './BaseLayout.astro';
 export interface Props {
     title: string;
     author: { name: string; id: number; documentId?: string; } | null | undefined;
-    publishedAt: string;
+    publishedat: string;
     featuredImage?: {
         url: string;
         alt: string;
     };
 }
 
-const { title, author, publishedAt, featuredImage } = Astro.props;
+const { title, author, publishedat, featuredImage } = Astro.props;
 
-const formattedDate = new Date(publishedAt).toLocaleDateString('ko-KR', {
+const formattedDate = new Date(publishedat).toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: 'long',
     day: 'numeric'
