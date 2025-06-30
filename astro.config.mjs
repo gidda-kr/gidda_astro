@@ -1,5 +1,8 @@
-// @ts-check
+// astro.config.mjs
 import { defineConfig } from 'astro/config';
+import sitemap from '@astrojs/sitemap';
 
-// https://astro.build/config
-export default defineConfig({});
+export default defineConfig({
+    site: 'https://gidda.kr', // ✨ 당신의 도메인 URL을 반드시 입력하세요.
+    integrations: [sitemap()],
+});
