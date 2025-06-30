@@ -1,93 +1,125 @@
 ---
-// 웹진 기사 페이지의 레이아웃을 임포트합니다.
 import WebzineArticleLayout from '../../layouts/webzine_page.astro';
-// 마크다운을 HTML로 변환하는 Remarkable 라이브러리를 임포트합니다.
 import { Remarkable } from 'remarkable';
 
-// Remarkable 인스턴스를 생성하고 각주 기능을 활성화합니다.
 const md = new Remarkable({
     html: true,
     typographer: true,
     linkify: true,
     footnotes: true,
-    });
+});
 
-// 1. getStaticPaths: 모든 웹진 기사의 슬러그를 가져와 정적 페이지 경로를 생성합니다.
 export async function getStaticPaths() {
     const strapiUrl = 'https://strapi-app-63132904920.asia-northeast3.run.app';
-    const apiPath = '/api/webzine-articles';
+    const apiPath = '/api/webzine-articles?fields=slug';
 
     try {
-    // 모든 필드를 가져오도록 수정 (content 포함)
-    const response = await fetch(`${strapiUrl}${apiPath}?populate[author][fields]=name`);
+        const response = await fetch(`${strapiUrl}${apiPath}`);
 
-    if (!response.ok) {
-    console.error(`getStaticPaths Strapi API 호출 실패: ${response.status} ${response.statusText}`);
-    return [];
-    }
-
-    const jsonData = await response.json();
-    const articles = jsonData.data;
-
-    if (!articles || articles.length === 0) {
-    console.warn('getStaticPaths: Strapi API에서 데이터를 가져오지 못했거나, 데이터가 비어 있습니다.');
-    return [];
-    }
-
-    return articles.map((article) => {
-    // ✨ API 응답 구조에 맞게 수정: attributes 없이 직접 접근
-      const slug = article.slug;
-
-    if (!slug) {
-        console.error('getStaticPaths: slug 속성이 없는 웹진 기사:', article);
-        return null;
+        if (!response.ok) {
+            console.error(`getStaticPaths API 실패: ${response.status}`);
+            return [];
         }
 
-    return {
-        params: { slug: slug },
-        props: { article: article }, // 전체 기사 데이터를 전달
-      };
-    }).filter(Boolean);
+        const jsonData = await response.json();
+        const articles = jsonData.data;
 
+        if (!articles || articles.length === 0) {
+            console.warn('getStaticPaths: 데이터 없음');
+            return [];
+        }
+
+        return articles.map((article) => {
+            // Strapi v5 구조: attributes 없이 바로 slug 접근
+            const slug = article.slug;
+
+            if (!slug) {
+                console.error('slug 없음:', article);
+                return null;
+            }
+
+            return {
+                params: { slug: slug },
+                props: { slug: slug },
+            };
+        }).filter(Boolean);
     } catch (error) {
-    console.error('getStaticPaths API 호출 중 예외 발생:', error);
-    return [];
+        console.error('getStaticPaths 에러:', error);
+        return [];
     }
+}
+
+// props에서 slug 받기
+const { slug } = Astro.props;
+
+// 상세 데이터 가져오기 (featuredImage로 수정)
+const strapiUrl = 'https://strapi-app-63132904920.asia-northeast3.run.app';
+const apiPath = `/api/webzine-articles?filters[slug][$eq]=${slug}&populate=*`;
+
+let articleEntry = null;
+
+try {
+    const response = await fetch(`${strapiUrl}${apiPath}`);
+
+    if (!response.ok) {
+        console.error(`상세 API 실패: ${response.status}`);
+    } else {
+        const jsonData = await response.json();
+        console.log('API 응답:', JSON.stringify(jsonData, null, 2));
+
+        if (jsonData.data && jsonData.data.length > 0) {
+            const rawEntry = jsonData.data[0];
+
+            // ✨ 디버깅: rawEntry 전체 구조 확인
+            console.log('rawEntry 전체:', JSON.stringify(rawEntry, null, 2));
+            console.log('featuredImage 데이터:', rawEntry.featuredImage);
+
+            // Strapi v5 구조에 맞게 데이터 추출 (attributes 없음)
+            articleEntry = {
+                id: rawEntry.id,
+                documentId: rawEntry.documentId,
+                title: rawEntry.title,
+                content: rawEntry.content,
+                slug: rawEntry.slug,
+                publishedAt: rawEntry.publishedAt || rawEntry.publishedat,
+                createdAt: rawEntry.createdAt,
+                updatedAt: rawEntry.updatedAt,
+                // author 처리
+                author: rawEntry.author || null,
+                // featuredImage 처리 - 이미 완전한 객체로 옴
+                featuredImage: rawEntry.featuredImage ? {
+                    url: rawEntry.featuredImage.url,
+                    alt: rawEntry.featuredImage.alternativeText || rawEntry.featuredImage.name || 'Featured Image'
+                } : null,
+            };
+
+            // ✨ 추가 디버깅: 최종 articleEntry 확인
+            console.log('최종 articleEntry.featuredImage:', articleEntry.featuredImage);
+        }
     }
+} catch (error) {
+    console.error('API 호출 에러:', error);
+}
 
-// ✨ getStaticPaths에서 이미 전체 데이터를 가져왔으므로 추가 API 호출 불필요
-const { article } = Astro.props;
-
-// 디버깅을 위한 콘솔 로그 추가
-console.log('Article data:', JSON.stringify(article, null, 2));
-
-// 마크다운 콘텐츠 처리
-let processedMarkdownContent = article?.content || '';
-
-// HTML로 변환
-const htmlContent = md.render(processedMarkdownContent);
-
-// 만약 content가 없다면 기본 콘텐츠 제공
-if (!article?.content) {
-    console.warn('Content field is missing from article:', article?.title);
-    }
+// 마크다운 처리
+const htmlContent = articleEntry?.content ? md.render(articleEntry.content) : '';
 ---
 
 <WebzineArticleLayout
-        title={article?.title || '기사 없음'}
-        author={article?.author || undefined}
-        publishedAt={article?.publishedAt || ''}
+        title={articleEntry?.title || '기사 없음'}
+        author={articleEntry?.author}
+        publishedAt={articleEntry?.publishedAt || ''}
+        featuredImage={articleEntry?.featuredImage}
 >
     <article>
-        {article ? (
-            article.content ? (
+        {articleEntry ? (
+            articleEntry.content ? (
                     <Fragment set:html={htmlContent} />
             ) : (
                     <div>
-                        <h2>{article.title}</h2>
-                        <p>이 기사의 본문 내용이 아직 준비되지 않았습니다.</p>
-                        <p>기사 ID: {article.id}</p>
-                        <p>슬러그: {article.slug}</p>
+                        <h2>본문이 준비되지 않았습니다.</h2>
+                        <p>기사 ID: {articleEntry.id}</p>
+                        <p>슬러그: {articleEntry.slug}</p>
                     </div>
             )
         ) : (

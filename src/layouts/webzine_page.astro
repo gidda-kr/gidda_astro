@@ -5,13 +5,16 @@ export interface Props {
     title: string;
     author: { name: string; id: number; documentId?: string; } | null | undefined;
     publishedAt: string;
-    coverImage?: {
+    featuredImage?: {
         url: string;
         alt: string;
     };
 }
 
-const { title, author, publishedAt, coverImage } = Astro.props;
+const { title, author, publishedAt, featuredImage } = Astro.props;
+
+// ✨ 디버깅: featuredImage prop 확인
+console.log('Layout에서 받은 featuredImage:', featuredImage);
 
 const formattedDate = new Date(publishedAt).toLocaleDateString('ko-KR', {
     year: 'numeric',
@@ -28,8 +31,8 @@ const formattedDate = new Date(publishedAt).toLocaleDateString('ko-KR', {
         </div>
 
         <header class="article-header">
-            {coverImage && (
-                    <img src={coverImage.url} alt={coverImage.alt} class="cover-image" />
+            {featuredImage && (
+                    <img src={featuredImage.url} alt={featuredImage.alt} class="featured-image" />
             )}
             <h1 class="article-title">{title}</h1>
             <div class="article-meta">
@@ -64,7 +67,7 @@ const formattedDate = new Date(publishedAt).toLocaleDateString('ko-KR', {
             padding-bottom: 3rem;
         }
 
-        .cover-image {
+        .featured-image {
             width: 100%;
             max-height: 450px;
             object-fit: cover;
@@ -80,7 +83,6 @@ const formattedDate = new Date(publishedAt).toLocaleDateString('ko-KR', {
             margin-bottom: 1.5rem;
             color: #1a1a1a;
             letter-spacing: -0.02em;
-            /* ✨ 여기를 수정했습니다: `word-break: keep-all;` 제거 */
         }
 
         .article-meta {
@@ -148,15 +150,29 @@ const formattedDate = new Date(publishedAt).toLocaleDateString('ko-KR', {
         .article-body p {
             margin-bottom: 1.75rem;
             text-align: left;
-            /* ✨ 여기를 수정했습니다: `word-break: keep-all;` 제거 */
-            /* `overflow-wrap: break-word;`는 일반적으로 유지해도 좋습니다. */
             word-spacing: normal;
             letter-spacing: normal;
         }
 
+        /* ✨ 본문 이미지 크기 제한 및 반응형 처리 */
+        .article-body img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 2rem auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        /* 이미지가 너무 작을 때 원본 크기 유지 */
+        .article-body img[width] {
+            width: auto;
+            max-width: 100%;
+        }
+
         /* URL과 긴 텍스트 처리 */
         .article-body a[href*="://"] {
-            word-break: break-all; /* 긴 URL은 단어 중간에 잘려야 합니다. */
+            word-break: break-all;
             overflow-wrap: break-word;
             max-width: 100%;
             display: inline-block;
@@ -171,15 +187,6 @@ const formattedDate = new Date(publishedAt).toLocaleDateString('ko-KR', {
         .article-body em {
             font-style: italic;
             color: #444;
-        }
-
-        /* 링크 스타일 - BaseLayout 전역 스타일 사용 */
-        .article-body a {
-            /* BaseLayout의 전역 a 스타일을 그대로 사용하기 위해 재정의하지 않음 */
-        }
-
-        .article-body a:hover {
-            /* BaseLayout의 전역 a:hover 스타일을 그대로 사용하기 위해 재정의하지 않음 */
         }
 
         /* 인용구 스타일 */
@@ -208,6 +215,60 @@ const formattedDate = new Date(publishedAt).toLocaleDateString('ko-KR', {
             line-height: 1.7;
         }
 
+        /* 테이블 반응형 처리 */
+        .article-body table {
+            width: 100%;
+            max-width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            display: block;
+            white-space: nowrap;
+        }
+
+        .article-body table thead {
+            display: table-header-group;
+        }
+
+        .article-body table tbody {
+            display: table-row-group;
+        }
+
+        .article-body table tr {
+            display: table-row;
+        }
+
+        .article-body table td,
+        .article-body table th {
+            display: table-cell;
+            padding: 0.75rem;
+            border: 1px solid #e0e0e0;
+            white-space: normal;
+        }
+
+        /* 코드 블록 처리 */
+        .article-body pre {
+            overflow-x: auto;
+            background: #f5f5f5;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+
+        .article-body code {
+            background: #f0f0f0;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        .article-body pre code {
+            background: none;
+            padding: 0;
+        }
+
         .page-type-label {
             display: inline-block;
             background: #355E3B;
@@ -233,6 +294,11 @@ const formattedDate = new Date(publishedAt).toLocaleDateString('ko-KR', {
                 padding-bottom: 2rem;
             }
 
+            .featured-image {
+                max-height: 300px;
+                margin-bottom: 2rem;
+            }
+
             .article-title {
                 font-size: 1.75rem;
                 margin-bottom: 1rem;
@@ -256,6 +322,31 @@ const formattedDate = new Date(publishedAt).toLocaleDateString('ko-KR', {
             .article-body h2 {
                 font-size: 1.25rem;
                 margin-top: 2rem;
+            }
+
+            /* 모바일에서 이미지 여백 조정 */
+            .article-body img {
+                margin: 1.5rem auto;
+            }
+
+            /* 모바일에서 테이블 스크롤 */
+            .article-body table {
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .webzine-content-container {
+                padding: 1rem;
+                margin: 0.5rem auto;
+            }
+
+            .featured-image {
+                max-height: 250px;
+            }
+
+            .article-body img {
+                margin: 1rem auto;
             }
         }
     </style>
