@@ -1,0 +1,11 @@
+# _headers
+
+# 모든 .xml 파일에 Content-Type을 application/xml로 강제 지정
+/sitemap-index.xml
+  Content-Type: application/xml
+
+/sitemap-*.xml
+  Content-Type: application/xml
+
+/feed.xml # RSS/Atom 피드를 만들 경우를 대비해서 추가 (선택 사항)
+  Content-Type: application/xml; charset=utf-8
