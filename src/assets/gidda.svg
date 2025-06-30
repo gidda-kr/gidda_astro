@@ -1,0 +1,19 @@
+<svg width="160" height="50" viewBox="0 0 160 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <style>
+        /* 폰트 스타일 */
+        .logo-text {
+        font-family: 'Pretendard', 'Arial', sans-serif; /* Pretendard 폰트 사용, 없으면 Arial */
+        font-weight: 700; /* 굵게 */
+        font-size: 32px;
+        fill: #355E3B; /* 짙은 녹색 */
+        }
+        /* 물방울 색상 */
+        .water-drop {
+        fill: #4CAF50; /* 밝은 녹색 */
+        }
+    </style>
+
+    <!-- '긷다' 텍스트 -->
+    <text x="0" y="35" class="logo-text">긷다</text>
+
+</svg>

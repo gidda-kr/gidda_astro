@@ -89,9 +89,37 @@ const {
         .site-header {
             background-color: #f4f0e5;
             padding: 1.5rem 2rem;
-            text-align: center;
-            /* box-shadow 속성은 제거된 상태를 유지합니다. */
+            position: relative;
         }
+
+        /* 로고 스타일 */
+        .site-logo {
+            position: absolute;
+            left: 2rem;
+            top: 1.5rem; /* 헤더 패딩과 동일한 간격 */
+        }
+
+        .site-logo a {
+            display: block;
+            text-decoration: none;
+        }
+
+        .site-logo svg {
+            height: 40px;
+            width: auto;
+        }
+
+        /* 데스크톱 네비게이션 - 로고와 동일한 높이에 배치 */
+        .main-nav {
+            text-align: center;
+            position: relative;
+            top: 1.5rem; /* 로고와 동일한 위치 */
+            height: 0px; /* 로고와 동일한 높이 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
         .main-nav a {
             margin: 0 1.5rem;
             font-weight: bold;
@@ -101,6 +129,110 @@ const {
         .main-nav a:hover {
             color: #355E3B; /* 마우스 올렸을 때 짙은 초록색으로 변경 */
             text-decoration: none; /* 밑줄 효과는 제거 */
+        }
+
+        /* 햄버거 메뉴 버튼 */
+        .mobile-menu-toggle {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: #333230;
+            cursor: pointer;
+            padding: 0.5rem;
+            position: absolute;
+            right: 2rem;
+            top: 1.5rem; /* 헤더 패딩과 동일한 간격 */
+        }
+
+        .mobile-menu-toggle:hover {
+            color: #355E3B;
+        }
+
+        /* 햄버거 아이콘 */
+        .hamburger {
+            display: flex;
+            flex-direction: column;
+            width: 20px;
+            height: 15px;
+            justify-content: space-between;
+        }
+
+        .hamburger span {
+            display: block;
+            height: 2px;
+            width: 100%;
+            background-color: currentColor;
+            transition: all 0.3s ease;
+        }
+
+        /* 햄버거 애니메이션 */
+        .mobile-menu-toggle.active .hamburger span:nth-child(1) {
+            transform: rotate(45deg) translate(5px, 5px);
+        }
+
+        .mobile-menu-toggle.active .hamburger span:nth-child(2) {
+            opacity: 0;
+        }
+
+        .mobile-menu-toggle.active .hamburger span:nth-child(3) {
+            transform: rotate(-45deg) translate(7px, -6px);
+        }
+
+        /* 모바일 메뉴 */
+        .mobile-nav {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background-color: #f4f0e5;
+            border-top: 1px solid #e0e0e0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            z-index: 100;
+        }
+
+        .mobile-nav.active {
+            display: block;
+        }
+
+        .mobile-nav a {
+            display: block;
+            padding: 1rem 2rem;
+            color: #333230;
+            font-weight: bold;
+            font-size: 1.1rem;
+            border-bottom: 1px solid #e0e0e0;
+            transition: background-color 0.2s ease;
+        }
+
+        .mobile-nav a:hover {
+            background-color: #e8e4d9;
+            color: #355E3B;
+        }
+
+        .mobile-nav a:last-child {
+            border-bottom: none;
+        }
+
+        /* 반응형 - 768px 이하에서 햄버거 메뉴 활성화 */
+        @media (max-width: 768px) {
+            .site-header {
+                padding: 1rem 2rem;
+            }
+
+            .site-logo {
+                top: 1rem; /* 모바일 헤더 패딩과 정확히 동일 */
+            }
+
+            .mobile-menu-toggle {
+                display: block;
+                top: 1rem; /* 로고와 정확히 동일한 위치 */
+            }
+
+            .main-nav {
+                display: none;
+            }
         }
 
         #scrollToTopBtn {
@@ -134,7 +266,42 @@ const {
                   height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
 <!-- End Google Tag Manager (noscript) -->
 <header class="site-header">
+    <!-- 로고 -->
+    <div class="site-logo">
+        <a href="/" aria-label="긷다 홈으로">
+            <svg width="160" height="50" viewBox="0 0 160 50" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <style>
+                    .logo-text {
+                        font-family: 'Noto Sans KR', 'Spoqa Han Sans Neo', 'Apple SD Gothic Neo', 'Malgun Gothic', 'Pretendard', sans-serif;
+                        font-weight: 700;
+                        font-size: 32px;
+                        fill: #355E3B;
+                        letter-spacing: -0.02em;
+                    }
+                </style>
+                <text x="0" y="35" class="logo-text">긷다</text>
+            </svg>
+        </a>
+    </div>
+
+    <!-- 데스크톱 네비게이션 -->
     <nav class="main-nav">
+        <a href="/wiki">위키</a>
+        <a href="/webzine">웹진</a>
+        <a href="/about">소개</a>
+    </nav>
+
+    <!-- 모바일 햄버거 버튼 -->
+    <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="메뉴 열기">
+        <div class="hamburger">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+    </button>
+
+    <!-- 모바일 네비게이션 -->
+    <nav class="mobile-nav" id="mobileNav">
         <a href="/">홈</a>
         <a href="/wiki">위키</a>
         <a href="/webzine">웹진</a>
@@ -171,6 +338,32 @@ const {
                 top: 0,
                 behavior: 'smooth'
             });
+        });
+
+        // 모바일 메뉴 토글 기능
+        const mobileMenuToggle = document.getElementById('mobileMenuToggle');
+        const mobileNav = document.getElementById('mobileNav');
+
+        mobileMenuToggle.addEventListener('click', () => {
+            mobileMenuToggle.classList.toggle('active');
+            mobileNav.classList.toggle('active');
+        });
+
+        // 모바일 메뉴 링크 클릭시 메뉴 닫기
+        const mobileNavLinks = mobileNav.querySelectorAll('a');
+        mobileNavLinks.forEach(link => {
+            link.addEventListener('click', () => {
+                mobileMenuToggle.classList.remove('active');
+                mobileNav.classList.remove('active');
+            });
+        });
+
+        // 화면 크기 변경시 모바일 메뉴 초기화
+        window.addEventListener('resize', () => {
+            if (window.innerWidth > 768) {
+                mobileMenuToggle.classList.remove('active');
+                mobileNav.classList.remove('active');
+            }
         });
     });
 </script>
