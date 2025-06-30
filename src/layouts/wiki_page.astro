@@ -36,6 +36,15 @@ const { title } = Astro.props;
       margin-top: 3rem;
       margin-bottom: 1.5rem;
     }
+    /* ✨✨✨ wiki-content-container 내부 이미지 스타일 추가 ✨✨✨ */
+    .wiki-content-container img {
+      max-width: 100%; /* 부모 요소 너비 넘지 않도록 */
+      height: auto;    /* 가로세로 비율 유지 */
+      display: block;  /* 블록 요소로 만들어 줄바꿈 및 중앙 정렬 용이 */
+      margin: 1.5rem auto; /* 상하 여백 및 중앙 정렬 (선택적) */
+      border-radius: 8px; /* 모서리 둥글게 */
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1); /* 은은한 그림자 */
+    }
     /* --- 각주 폰트 크기 조정 --- */
     .footnote-backref {
       font-size: 0.66rem;
