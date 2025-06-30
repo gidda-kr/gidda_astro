@@ -102,6 +102,25 @@ const {
             align-items: flex-end; /* 모든 요소를 아래쪽으로 정렬 */
         }
 
+        /* 헤더 하단 구분선 스타일 추가 */
+        .site-header::after {
+            content: '';
+            display: block;
+            width: 800px;
+            height: 2px;
+            background-color: #355E3B; /* 로고와 같은 진한 녹색 */
+            margin: 0 auto;
+            margin-top: 0.5rem; /* 헤더와 선 사이 간격 */
+        }
+
+        /* 반응형 - 800px 이하에서는 선의 너비를 화면에 맞춤 */
+        @media (max-width: 800px) {
+            .site-header::after {
+                width: calc(100% - 4rem); /* 좌우 2rem씩 여백 */
+                max-width: 800px;
+            }
+        }
+
         /* 로고 스타일 */
         .site-logo {
             position: absolute;
