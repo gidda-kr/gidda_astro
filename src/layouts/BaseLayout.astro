@@ -122,7 +122,7 @@ const {
         /* 반응형 - 800px 이하에서는 선의 너비를 화면에 맞춤 */
         @media (max-width: 800px) {
             .site-header::after {
-                width: calc(100% - 4rem); /* 좌우 2rem씩 여백 */
+                width: calc(100% - 2rem); /* 좌우 2rem씩 여백 */
                 max-width: 800px;
             }
         }
@@ -155,7 +155,7 @@ const {
         }
 
         .main-nav a {
-            margin: 0 2.5rem; /* 간격 늘림 */
+            margin: 0 2.1rem; /* 간격 늘림 */
             font-weight: normal;
             font-size: 1.3rem; /* 네비게이션 폰트 크기 증가 (1.1rem -> 1.3rem) */
             color: #333230;
@@ -263,7 +263,17 @@ const {
             }
 
             .header-container {
+                padding: 0 1rem; /* 모바일에서 좌우 패딩을 1rem (16px)로 줄입니다. */
                 height: 50px; /* 모바일에서 높이 조정 */
+            }
+
+            /* ✨✨✨ 이 부분을 추가합니다: 로고와 햄버거 버튼의 절대 위치도 함께 줄여줍니다. ✨✨✨ */
+            .site-logo {
+                left: 1rem; /* 모바일에서 왼쪽 간격을 1rem로 줄입니다. */
+            }
+
+            .mobile-menu-toggle {
+                right: 1rem; /* 모바일에서 오른쪽 간격을 1rem로 줄입니다. */
             }
 
             .site-logo svg {
