@@ -1,0 +1,196 @@
+---
+// src/components/Image.astro
+
+interface ImageProps {
+    alternativeText?: string;
+    caption?: string;
+    copyright?: string;
+    image: {
+        id: number;
+        name: string;
+        alternativeText?: string;
+        caption?: string;
+        width: number;
+        height: number;
+        formats?: {
+            large?: { url: string; width: number; height: number; };
+            medium?: { url: string; width: number; height: number; };
+            small?: { url: string; width: number; height: number; };
+            thumbnail?: { url: string; width: number; height: number; };
+        };
+        url: string;
+        mime: string;
+    };
+}
+
+const { alternativeText, caption, copyright, image } = Astro.props as ImageProps;
+
+// 적절한 이미지 URL 선택 (반응형)
+function getImageUrl(image: ImageProps['image']) {
+    if (!image) return '';
+
+    // 화면 크기에 따라 적절한 이미지 선택
+    const formats = image.formats;
+    if (formats) {
+        // 큰 화면용은 large, 중간은 medium, 작은 화면은 small 사용
+        return {
+            large: formats.large?.url || formats.medium?.url || formats.small?.url || image.url,
+            medium: formats.medium?.url || formats.small?.url || image.url,
+            small: formats.small?.url || formats.thumbnail?.url || image.url,
+            original: image.url
+        };
+    }
+
+    return {
+        large: image.url,
+        medium: image.url,
+        small: image.url,
+        original: image.url
+    };
+}
+
+const imageUrls = getImageUrl(image);
+const altText = alternativeText || image.alternativeText || image.caption || '이미지';
+const displayCaption = caption || image.caption;
+---
+
+<figure class="image-container">
+    <picture class="image-picture">
+        <!-- 반응형 이미지 -->
+        <source media="(min-width: 1024px)" srcset={imageUrls.large}>
+        <source media="(min-width: 768px)" srcset={imageUrls.medium}>
+        <source media="(max-width: 767px)" srcset={imageUrls.small}>
+        <img
+                src={imageUrls.original}
+                alt={altText}
+                width={image.width}
+                height={image.height}
+                loading="lazy"
+                class="image-img"
+        />
+    </picture>
+
+    {(displayCaption || copyright) && (
+            <figcaption class="image-caption">
+                {displayCaption && (
+                        <div class="caption-text" set:html={displayCaption}></div>
+                )}
+                {copyright && (
+                        <div class="copyright-text" set:html={copyright}></div>
+                )}
+            </figcaption>
+    )}
+</figure>
+
+<style>
+    .image-container {
+        margin: 2rem 0;
+        text-align: center;
+        border-radius: 8px;
+        overflow: hidden;
+        display: inline-block; /* 컨테이너가 이미지 크기에 맞춰지도록 */
+        width: auto; /* 자동 너비 */
+        vertical-align: top; /* 인라인 블록 요소의 기본 정렬 제거 */
+        line-height: 0; /* 텍스트 라인 높이 제거 */
+    }
+
+    .image-picture {
+        display: block;
+        width: auto; /* 이미지 원본 크기 유지 */
+        line-height: 0; /* 이미지 하단 여백 제거 */
+        margin: 0; /* 모든 마진 제거 */
+        padding: 0; /* 모든 패딩 제거 */
+    }
+
+    .image-img {
+        width: auto; /* 이미지 원본 크기 유지 */
+        height: auto;
+        max-width: 100%; /* 부모 컨테이너보다 클 경우만 축소 */
+        display: block;
+        object-fit: cover;
+        margin: 0; /* 이미지 마진 제거 */
+        padding: 0; /* 이미지 패딩 제거 */
+        vertical-align: top; /* 이미지 수직 정렬 제거 */
+    }
+
+    .image-caption {
+        padding: 1rem 1.25rem;
+        background: #fbf8f0;
+        border-top: 1px solid #f0f0f0;
+        text-align: left;
+    }
+
+    .caption-text {
+        font-size: 0.9rem;
+        color: #555;
+        line-height: 1.5;
+        margin-bottom: 0.5rem;
+    }
+
+    .caption-text:last-child {
+        margin-bottom: 0;
+    }
+
+    .copyright-text {
+        font-size: 0.8rem;
+        color: #888;
+        font-style: italic;
+        line-height: 1.4;
+    }
+
+    /* 캡션 내부 링크 스타일링 */
+    .caption-text :global(a),
+    .copyright-text :global(a) {
+        color: #059669;
+        text-decoration: underline;
+        text-decoration-color: rgba(5, 150, 105, 0.3);
+    }
+
+    .caption-text :global(a:hover),
+    .copyright-text :global(a:hover) {
+        text-decoration-color: rgba(5, 150, 105, 0.6);
+    }
+
+    /* 캡션 내부 강조 텍스트 */
+    .caption-text :global(strong),
+    .copyright-text :global(strong) {
+        font-weight: 600;
+        color: #333;
+    }
+
+    .caption-text :global(em),
+    .copyright-text :global(em) {
+        font-style: italic;
+    }
+
+    /* 반응형 스타일 */
+    @media (max-width: 768px) {
+        .image-container {
+            margin: 1.5rem 0;
+            border-radius: 6px;
+        }
+
+        .image-caption {
+            padding: 0.875rem 1rem;
+        }
+
+        .caption-text {
+            font-size: 0.85rem;
+        }
+
+        .copyright-text {
+            font-size: 0.75rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .image-container {
+            margin: 1.25rem -1rem; /* 모바일에서 가로 전체 사용 */
+            border-radius: 0;
+        }
+
+        .image-caption {
+            padding: 0.75rem 1rem;
+        }
+    }
+</style>

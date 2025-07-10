@@ -1,0 +1,619 @@
+---
+import BaseLayout from './BaseLayout.astro';
+
+export interface Props {
+    title: string;
+    author: { name: string; id: number; documentId?: string; } | null | undefined;
+    publishedat: string;
+    featuredImage?: {
+        url: string;
+        alt: string;
+    } | string; // 문자열도 허용
+}
+
+const { title, author, publishedat, featuredImage } = Astro.props;
+
+// featuredImage가 문자열인지 객체인지 확인
+const imageUrl = typeof featuredImage === 'string' ? featuredImage : featuredImage?.url;
+const imageAlt = typeof featuredImage === 'string' ? title : featuredImage?.alt || title;
+
+const formattedDate = new Date(publishedat).toLocaleDateString('ko-KR', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+});
+---
+
+<BaseLayout
+        title={title}
+        description={`${title} - 긷다 웹진`}
+        image={imageUrl || '/default-og-image.jpg'}
+        type="article"
+>
+    <div class="webzine-content-container" style="margin-top: 0;">
+
+        <header class="article-header"
+                style={`${imageUrl ? `background-image: url('${imageUrl}'); background-size: cover; background-position: center; background-repeat: no-repeat;` : 'background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);'} position: relative; width: 100vw; margin-left: calc(-50vw + 50%); height: 60vh; max-height: 500px; min-height: 400px; display: flex; align-items: flex-end; justify-content: center; text-align: center; margin-bottom: 2rem; overflow: hidden; box-sizing: border-box;`}>
+
+            {imageUrl && (
+                    <div class="header-overlay" style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.4); z-index: 1;"></div>
+            )}
+            <div class="header-content" style="position: relative; z-index: 2; max-width: 800px; width: 100%; padding: 0 2rem; margin-bottom: 2.5rem; box-sizing: border-box; display: flex; justify-content: flex-start;">
+                <div class="title-container" style="text-align: left; width: 600px; max-width: 600px;">
+                    <h1 class="article-title" style="font-size: 2.5rem; font-weight: 700; line-height: 1.3; margin: 0; color: #1a1a1a; letter-spacing: -0.02em; background-color: #f4f0e5; padding: 0.1em 0.3em; display: inline; box-decoration-break: clone; -webkit-box-decoration-break: clone; border-radius: 0 !important; box-shadow: none !important; border: none !important; outline: none !important;">{title}</h1>
+                    <div class="date-container">
+                        <span class="date">{formattedDate}</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <div class="main-content-wrapper">
+            <main class="article-body">
+                <div>
+                    <slot />
+                </div>
+            </main>
+            <aside class="author-sidebar">
+                <div class="author-info">
+                    <span class="page-type-label"> 웹진 </span>
+                    <span class="mobile-break"></span>
+                    <div class="author-text-container">
+                        <span class="author-name">글</span>
+                        <div class="author-divider"></div>
+                        <span class="author-value">{author?.name || '익명'}</span>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </div>
+
+    <style is:global>
+        .webzine-content-container {
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            font-family: inherit;
+            color: #1a1a1a;
+            line-height: 1.75;
+        }
+
+        .article-header {
+            position: relative;
+            width: 100vw;
+            margin-left: calc(-50vw + 50%);
+            height: 60vh;
+            max-height: 500px;
+            min-height: 400px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            margin-bottom: 1rem;
+            background-size: cover;
+            background-position: center;
+            background-repeat: no-repeat;
+            background-color: #f5f5f5;
+            overflow: hidden;
+        }
+
+        .article-header:not([style*="background-image"]) {
+            background: linear-gradient(135deg, #2d5532 0%, #588157 100%);
+        }
+
+        .header-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.4);
+            z-index: 1;
+        }
+
+        .header-content {
+            position: relative;
+            z-index: 2;
+            max-width: 80%;
+        }
+
+        .article-title {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 2.5rem;
+            color: #1a1a1a;
+            letter-spacing: -0.02em;
+            background-color: rgba(255, 255, 255, 0.95);
+            padding: 0.5rem 1rem;
+            border-radius: 4px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            display: inline-block;
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+        }
+
+        .date-container {
+            margin-top: 1rem;
+            text-align: left;
+        }
+
+        .date-container .date {
+            background-color: #f4f0e5;
+            padding: 0.1em 0.3em;
+            border-radius: 0;
+            box-shadow: none;
+            border: none;
+            outline: none;
+            font-size: 0.9rem;
+            color: #1a1a1a;
+            font-weight: 400;
+            display: inline;
+            box-decoration-break: clone;
+            -webkit-box-decoration-break: clone;
+            letter-spacing: -0.02em;
+        }
+
+        .main-content-wrapper {
+            display: flex;
+            gap: 1.5rem;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 0 2rem;
+        }
+
+        .author-sidebar {
+            flex-shrink: 0;
+            width: 120px;
+            padding: 1rem;
+            height: fit-content;
+            position: sticky;
+            top: 2rem;
+            margin-top: 3rem; /* h2의 마진과 비슷하게 맞춤 */
+        }
+
+        .page-type-label {
+            display: inline-flex;
+            justify-content: center;
+            align-items: center;
+            background: #355E3B;
+            color: white;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.1em;
+            text-transform: uppercase;
+            padding: 0.4rem 0.8rem;
+            border-radius: 5px;
+            //margin-bottom: 1.5rem;
+        }
+
+        .mobile-break {
+            display: block;
+            height: 1rem;
+        }
+
+        .author-info {
+            text-align: center;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .author-text-container {
+            display: inline-block;
+            text-align: center;
+        }
+
+        .author-name {
+            font-size: 0.8rem;
+            color: #666;
+            font-weight: 500;
+            margin: 0;
+            display: block;
+        }
+
+        .author-divider {
+            width: 100%;
+            height: 1px;
+            background-color: #ddd;
+            margin: 0.5rem 0;
+        }
+
+        .author-value {
+            font-size: 0.9rem;
+            color: #333;
+            font-weight: 600;
+            margin: 0;
+            display: block;
+        }
+
+        .mobile-break {
+            display: block;
+            height: 1rem;
+        }
+
+        .article-body {
+            flex: 1;
+            width: 100%;
+            max-width: 660px;
+            font-size: 1rem;
+            line-height: 1.6;
+            color: #2a2a2a;
+            margin-bottom: 3rem;
+        }
+
+        .webzine-content-container .article-body h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1.3;
+            margin-top: 3.5rem;
+            margin-bottom: 1.5rem;
+            color: #1a1a1a;
+            letter-spacing: -0.01em;
+            border-bottom: 2px solid #f0f0f0;
+            padding-bottom: 0.5rem;
+        }
+
+        .webzine-content-container .article-body h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-top: 3rem;
+            margin-bottom: 1.25rem;
+            color: #222;
+            letter-spacing: -0.01em;
+        }
+
+        .webzine-content-container .article-body h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            line-height: 1.4;
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            color: #333;
+        }
+
+        .webzine-content-container .article-body p {
+            margin-bottom: 1.75rem;
+            text-align: left;
+            word-spacing: normal;
+            letter-spacing: normal;
+        }
+
+        .article-body img {
+            max-width: 100%;
+            height: auto;
+            display: block;
+            margin: 2rem auto;
+            border-radius: 8px;
+            box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .article-body img[width] {
+            width: auto;
+            max-width: 100%;
+        }
+
+        .article-body a[href*="://"] {
+            word-break: break-all;
+            overflow-wrap: break-word;
+            max-width: 100%;
+            display: inline-block;
+        }
+
+        .article-body strong {
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+
+        .article-body em {
+            font-style: italic;
+            color: #444;
+        }
+
+        .article-body blockquote {
+            margin: 2rem 0;
+            padding: 1.5rem 2rem;
+            background: #f0fdf4;
+            border-left: 4px solid #22c55e;
+            font-style: italic;
+            color: #555;
+            border-radius: 0 8px 8px 0;
+        }
+
+        .article-body blockquote p {
+            margin-bottom: 0;
+        }
+
+        .article-body ul, .article-body ol {
+            margin: 1.5rem 0;
+            padding-left: 1.5rem;
+        }
+
+        .article-body li {
+            margin-bottom: 0.5rem;
+            line-height: 1.7;
+        }
+
+        .article-body table {
+            width: 100%;
+            max-width: 100%;
+            border-collapse: collapse;
+            margin: 2rem 0;
+            font-size: 0.9rem;
+            overflow-x: auto;
+            display: block;
+            white-space: nowrap;
+        }
+
+        .article-body table thead {
+            display: table-header-group;
+        }
+
+        .article-body table tbody {
+            display: table-row-group;
+        }
+
+        .article-body table tr {
+            display: table-row;
+        }
+
+        .article-body table td,
+        .article-body table th {
+            display: table-cell;
+            padding: 0.75rem;
+            border: 1px solid #e0e0e0;
+            white-space: normal;
+        }
+
+        .article-body pre {
+            overflow-x: auto;
+            background: #f5f5f5;
+            padding: 1rem;
+            border-radius: 6px;
+            margin: 1.5rem 0;
+            font-size: 0.9rem;
+        }
+
+        .article-body code {
+            background: #f0f0f0;
+            padding: 0.2rem 0.4rem;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        .article-body pre code {
+            background: none;
+            padding: 0;
+        }
+
+        /* 리스트 내부 p 태그 마진 조정 */
+        .article-body ul p,
+        .article-body ol p,
+        .article-body li p {
+            margin-bottom: 0.5rem !important; /* 기본 1.75rem에서 0.5rem로 축소 */
+        }
+
+        /* 중첩 리스트 간격 조정 */
+        .article-body ul ul,
+        .article-body ol ol,
+        .article-body ul ol,
+        .article-body ol ul {
+            margin-top: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        /* 리스트 아이템 내부 마지막 p 태그는 마진 제거 */
+        .article-body li p:last-child {
+            margin-bottom: 0 !important;
+        }
+
+        /* 리스트 아이템 자체 간격 조정 */
+        .article-body li {
+            margin-bottom: 0.75rem; /* 기존 0.5rem에서 0.75rem로 약간 증가 */
+            line-height: 1.7;
+        }
+
+        /* 중첩 리스트 내부 li 간격 더 줄이기 */
+        .article-body ul ul li,
+        .article-body ol ol li,
+        .article-body ul ol li,
+        .article-body ol ul li {
+            margin-bottom: 0.25rem;
+        }
+
+        /* 반응형 */
+        @media (max-width: 768px) {
+            .webzine-content-container {
+                padding: 0 1.5rem;
+                margin: 1rem auto;
+            }
+
+            .article-header {
+                height: 50vh;
+                max-height: 400px;
+                min-height: 300px;
+                margin-bottom: 1.5rem;
+            }
+
+            .header-content {
+                max-width: 800px !important;
+                margin: 0;
+                padding-top: 0;
+            }
+
+            .article-title {
+                font-size: 1.75rem;
+                padding: 0.4rem 0.8rem;
+            }
+
+            .main-content-wrapper {
+                flex-direction: column;
+                gap: 1.5rem;
+                padding: 0 1.5rem;
+            }
+
+            .mobile-break {
+                display: none; /* 모바일에서는 줄바꿈 숨김 */
+            }
+
+            .author-sidebar {
+                width: 100%;
+                position: static;
+                order: -1; /* 모바일에서 위에 표시 */
+                margin: 0 !important; /* 모든 마진 제거 */
+                padding: 0 !important; /* 모든 패딩 제거 */
+                text-align: center;
+                height: 32px; /* 고정 높이 */
+            }
+
+            .mobile-break {
+                display: none; /* 모바일에서는 줄바꿈 숨김 */
+            }
+
+            .author-info {
+                flex-direction: row !important;
+                justify-content: center;
+                align-items: center;
+                gap: 1rem;
+            }
+
+            .author-text-container {
+                display: inline-block;
+                text-align: center;
+            }
+
+            .author-text-container {
+                display: flex !important;
+                align-items: center;
+                gap: 0.5rem;
+            }
+
+            .author-name {
+                margin: 0 !important;
+            }
+
+            .author-value {
+                margin: 0 !important;
+            }
+
+            .author-divider {
+                width: 1px !important;
+                height: 12px !important;
+                margin: 0 !important;
+            }
+
+            .page-type-label {
+                font-size: 0.8rem;
+            }
+
+            .article-body {
+                font-size: 1rem;
+            }
+
+            .article-body h2 {
+                font-size: 1.25rem;
+                margin-top: 2rem;
+            }
+
+            .article-body img {
+                margin: 1.5rem auto;
+            }
+
+            .article-body table {
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .webzine-content-container {
+                padding: 0 1rem;
+                margin: 0.5rem auto;
+            }
+
+            .article-header {
+                height: 40vh;
+                max-height: 300px;
+                min-height: 250px;
+            }
+
+            .header-content {
+                max-width: 800px !important;
+                margin: 0;
+            }
+
+            .article-title {
+                font-size: 1.5rem;
+                padding: 0.3rem 0.6rem;
+            }
+
+            .main-content-wrapper {
+                padding: 0 1rem;
+            }
+
+            .page-type-label {
+                font-size: 0.75rem;
+            }
+
+            .article-body img {
+                margin: 1rem auto;
+            }
+        }
+    </style>
+
+    <script>
+        // 반응형 처리 - 높이, 마진, 폰트 크기 조정
+        function adjustHeaderResponsive() {
+            const header = document.querySelector('.article-header');
+            const headerContent = document.querySelector('.header-content');
+            const titleElement = document.querySelector('.article-title');
+
+            if (header && headerContent && titleElement) {
+                const width = window.innerWidth;
+
+                // 높이 조정
+                let height, maxHeight, minHeight;
+                let marginBottom;
+                let fontSize;
+
+                if (width <= 480) {
+                    height = '40vh';
+                    maxHeight = '300px';
+                    minHeight = '250px';
+                    marginBottom = '1rem';
+                    fontSize = '1.75rem';
+                } else if (width <= 768) {
+                    height = '50vh';
+                    maxHeight = '400px';
+                    minHeight = '300px';
+                    marginBottom = '1.25rem';
+                    fontSize = '2.5rem';
+                } else {
+                    height = '60vh';
+                    maxHeight = '500px';
+                    minHeight = '400px';
+                    marginBottom = '1.5rem';
+                    fontSize = '2.5rem';
+                }
+
+                // 헤더 높이 업데이트
+                const currentStyle = header.style.cssText;
+                let newStyle = currentStyle;
+                newStyle = newStyle.replace(/height:\s*[^;]+;?/, `height: ${height};`);
+                newStyle = newStyle.replace(/max-height:\s*[^;]+;?/, `max-height: ${maxHeight};`);
+                newStyle = newStyle.replace(/min-height:\s*[^;]+;?/, `min-height: ${minHeight};`);
+                header.style.cssText = newStyle;
+
+                // 마진 업데이트
+                headerContent.style.marginBottom = marginBottom;
+
+                // 폰트 크기 업데이트
+                titleElement.style.fontSize = fontSize;
+            }
+        }
+
+        // 페이지 로드시와 리사이즈시 실행
+        document.addEventListener('DOMContentLoaded', adjustHeaderResponsive);
+        window.addEventListener('resize', adjustHeaderResponsive);
+    </script>
+</BaseLayout>

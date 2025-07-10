@@ -1,0 +1,194 @@
+---
+// src/components/Callout.astro
+
+interface CalloutProps {
+    content: string;
+    types: 'definition' | 'factbox' | 'examples';
+    source?: string;
+}
+
+const { content, types, source } = Astro.props as CalloutProps;
+
+// 타입별 스타일 설정
+const typeStyles = {
+    definition: {
+        border: '#059669',
+        background: '#fbf8f0',
+        icon: '📖',
+        label: '정의'
+    },
+    factbox: {
+        border: '#3b82f6',
+        background: '#f7f8fa',
+        icon: '📊',
+        label: '팩트박스'
+    },
+    examples: {
+        border: '#f59e0b',
+        background: '#faf9f7',
+        icon: '💡',
+        label: '예시'
+    }
+};
+
+const currentStyle = typeStyles[types] || typeStyles.definition;
+---
+
+<div class="callout" data-type={types}>
+    <div class="callout-header">
+        <span class="callout-icon" role="img" aria-label={currentStyle.label}>
+            {currentStyle.icon}
+        </span>
+        <span class="callout-label">{currentStyle.label}</span>
+    </div>
+
+    <div class="callout-content" set:html={content}></div>
+
+    {source && (
+            <div class="callout-source">
+                <span class="source-label">출처:</span>
+                <span class="source-text" set:html={source}></span>
+            </div>
+    )}
+</div>
+
+<style>
+    .callout {
+        margin: 1.5rem 0;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        font-size: 0.95rem;
+        line-height: 1.6;
+    }
+
+    .callout[data-type="definition"] {
+        border-left: 4px solid #059669;
+        background-color: #fbf8f0;
+    }
+
+    .callout[data-type="factbox"] {
+        border-left: 4px solid #3b82f6;
+        background-color: #f7f8fa;
+    }
+
+    .callout[data-type="examples"] {
+        border-left: 4px solid #f59e0b;
+        background-color: #faf9f7;
+    }
+
+    .callout-header {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 1rem 1.25rem 0.5rem 1.25rem;
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .callout[data-type="definition"] .callout-header {
+        color: #047857;
+    }
+
+    .callout[data-type="factbox"] .callout-header {
+        color: #1d4ed8;
+    }
+
+    .callout[data-type="examples"] .callout-header {
+        color: #d97706;
+    }
+
+    .callout-icon {
+        font-size: 1rem;
+        line-height: 1;
+    }
+
+    .callout-label {
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-size: 0.8rem;
+    }
+
+    .callout-content {
+        padding: 0 1.25rem 1rem 1.25rem;
+        color: #374151;
+    }
+
+    .callout-content :global(p) {
+        margin: 0 0 0.75rem 0;
+    }
+
+    .callout-content :global(p:last-child) {
+        margin-bottom: 0;
+    }
+
+    .callout-content :global(strong) {
+        font-weight: 600;
+        color: #1f2937;
+    }
+
+    .callout-content :global(em) {
+        font-style: italic;
+    }
+
+    .callout-content :global(a) {
+        color: inherit;
+        text-decoration: underline;
+        text-decoration-color: rgba(55, 65, 81, 0.3);
+    }
+
+    .callout-content :global(a:hover) {
+        text-decoration-color: rgba(55, 65, 81, 0.6);
+    }
+
+    .callout-source {
+        padding: 0.75rem 1.25rem;
+        background-color: rgba(0, 0, 0, 0.02);
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+        font-size: 0.85rem;
+        color: #6b7280;
+        line-height: 1.5;
+    }
+
+    .source-label {
+        font-weight: 500;
+        margin-right: 0.5rem;
+    }
+
+    .source-text :global(em) {
+        font-style: italic;
+    }
+
+    .source-text :global(a) {
+        color: #6b7280;
+        text-decoration: underline;
+        text-decoration-color: rgba(107, 114, 128, 0.3);
+    }
+
+    .source-text :global(a:hover) {
+        color: #374151;
+        text-decoration-color: rgba(55, 65, 81, 0.5);
+    }
+
+    /* 반응형 */
+    @media (max-width: 768px) {
+        .callout {
+            margin: 1.25rem 0;
+            font-size: 0.9rem;
+        }
+
+        .callout-header {
+            padding: 0.875rem 1rem 0.5rem 1rem;
+            font-size: 0.85rem;
+        }
+
+        .callout-content {
+            padding: 0 1rem 0.875rem 1rem;
+        }
+
+        .callout-source {
+            padding: 0.625rem 1rem;
+            font-size: 0.8rem;
+        }
+    }
+</style>

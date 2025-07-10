@@ -1,5 +1,21 @@
 {
   "extends": "astro/tsconfigs/strict",
-  "include": [".astro/types.d.ts", "**/*"],
-  "exclude": ["dist"]
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "~/*": ["src/*"]
+    },
+    // TypeScript가 JSX/TSX 파일을 어떻게 처리할지 설정합니다.
+    // Astro는 자체적으로 JSX를 처리하므로 'preserve'로 설정하는 것이 좋습니다.
+    "jsx": "preserve",
+    // ES 모듈과 CommonJS 모듈 간의 호환성을 높여줍니다.
+    "esModuleInterop": true
+  },
+  "include": [
+    ".astro/types.d.ts",
+    "**/*"
+  ],
+  "exclude": [
+    "dist"
+  ]
 }

@@ -1,4 +1,6 @@
 ---
+// src/layouts/wiki_page.astro
+
 import BaseLayout from './BaseLayout.astro';
 
 export interface Props {
@@ -6,7 +8,7 @@ export interface Props {
   description?: string;
 }
 
-const { title, description } = Astro.props;
+const { title, description = "Astro description"  } = Astro.props; //
 ---
 
 <BaseLayout
@@ -15,10 +17,6 @@ const { title, description } = Astro.props;
     type="article"
 >
   <div class="wiki-content-container">
-    <div class="page-type-label">
-      WIKI
-    </div>
-
     <main class="wiki-body">
       <slot />
     </main>
@@ -28,24 +26,11 @@ const { title, description } = Astro.props;
 
     .wiki-content-container {
       max-width: 700px;
-      margin: 2rem auto;
-      padding: 1rem 2rem;
+      margin: 0rem auto;
+      padding: 0rem 2rem;
       font-family: inherit;
       color: #1a1a1a;
       line-height: 1.7;
-    }
-
-    .page-type-label {
-      display: inline-block;
-      background: #355E3B;
-      color: white;
-      font-size: 0.75rem;
-      font-weight: 600;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      padding: 0.5rem 1rem;
-      border-radius: 20px;
-      margin-bottom: 2rem;
     }
 
     .wiki-body {
@@ -242,6 +227,61 @@ const { title, description } = Astro.props;
     .wiki-body a[href^="#fn:"],
     .wiki-body a[href^="#fnref:"] {
       color: inherit; /* BaseLayout의 링크 색상 사용 */
+    }
+
+    /* 리스트 내부 p 태그 마진 조정 */
+    .wiki-body ul p,
+    .wiki-body ol p,
+    .wiki-body li p {
+      margin-bottom: 0.5rem !important; /* 기본 1.5rem에서 0.5rem로 축소 */
+      margin-top: 0 !important;
+    }
+
+    /* 리스트 아이템 내부 마지막 p 태그는 마진 제거 */
+    .wiki-body li p:last-child {
+      margin-bottom: 0 !important;
+    }
+
+    /* 중첩 리스트 간격 조정 */
+    .wiki-body ul ul,
+    .wiki-body ol ol,
+    .wiki-body ul ol,
+    .wiki-body ol ul {
+      margin-top: 0.5rem;
+      margin-bottom: 0.5rem;
+    }
+
+    /* 리스트 아이템 자체 간격 조정 */
+    .wiki-body li {
+      margin-bottom: 0.75rem; /* 기존 0.5rem에서 0.75rem로 약간 증가 */
+      line-height: 1.7;
+    }
+
+    /* 중첩 리스트 내부 li 간격 더 줄이기 */
+    .wiki-body ul ul li,
+    .wiki-body ol ol li,
+    .wiki-body ul ol li,
+    .wiki-body ol ul li {
+      margin-bottom: 0.25rem;
+    }
+
+    /* 중첩된 리스트의 패딩 조정 */
+    .wiki-body li ul,
+    .wiki-body li ol {
+      margin: 0.5rem 0;
+      padding-left: 1.25rem;
+    }
+
+    /* 일반 문단과 리스트 내부 문단을 구분 */
+    .wiki-body p:not(li p) {
+      margin-bottom: 1.5rem; /* 일반 문단은 기존 간격 유지 */
+    }
+
+    /* 리스트 전체 간격 조정 */
+    .wiki-body ul,
+    .wiki-body ol {
+      margin: 1.25rem 0; /* 기존 1.5rem에서 1.25rem로 축소 */
+      padding-left: 1.5rem;
     }
 
     /* 반응형 */

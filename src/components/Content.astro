@@ -1,0 +1,47 @@
+---
+// src/components/Content.astro
+
+// MarkdownIt 임포트 및 사용을 제거합니다.
+// 이제 이 컴포넌트는 [slug].astro에서 이미 HTML로 변환된 콘텐츠를 받습니다.
+// import MarkdownIt from 'markdown-it';
+
+interface Props {
+    heading?: string;
+    content: string; // ✅ 이 content는 이제 HTML로 변환된 문자열입니다.
+    style: 'lead' | 'highlight' | 'default';
+}
+
+const { heading, content, style } = Astro.props as Props;
+
+// MarkdownIt 인스턴스 생성 및 렌더링 로직을 제거합니다.
+// const md = new MarkdownIt({
+//     html: true,
+//     typographer: true,
+//     linkify: true,
+// });
+
+const styleOptions = {
+    lead: 'text-xl font-light text-gray-600 dark:text-gray-400 border-l-4 border-sky-500 pl-4',
+    highlight: 'bg-yellow-100 dark:bg-yellow-800/30 p-4 rounded-md',
+    default: '',
+};
+
+const styleClass = styleOptions[style] || styleOptions.default;
+
+// ✅ content는 이미 HTML이므로, 별도의 처리 없이 바로 htmlContent에 할당합니다.
+// md.render() 호출을 제거합니다.
+const htmlContent = content || '';
+
+// ⚠️ 디버깅 console.log는 필요하면 다시 추가해주세요.
+// console.log('--- Content.astro Debug ---');
+// console.log('Content received (already HTML):', content);
+// console.log('--- End Content.astro Debug ---');
+---
+
+<div class:list={["prose max-w-none dark:prose-invert my-6", styleClass]}>
+
+    {heading && <h2 class="!mt-0 !mb-3">{heading}</h2>}
+
+    <div set:html={htmlContent} />
+
+</div>

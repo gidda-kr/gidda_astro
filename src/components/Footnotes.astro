@@ -1,0 +1,82 @@
+---
+// src/components/Footnotes.astro
+
+import MarkdownIt from 'markdown-it'; // ✅ MarkdownIt 임포트
+
+interface Props {
+    footnotesMap: Map<string, { number: number; content: string; refs: string[] }>;
+}
+
+const { footnotesMap } = Astro.props as Props;
+
+// ✅ 각주 내용 렌더링을 위한 MarkdownIt 인스턴스 생성
+const md = new MarkdownIt({
+    html: true, // HTML 태그 허용
+    linkify: true, // URL을 자동으로 링크로 변환
+    typographer: true, // 타이포그래피 개선 (선택 사항)
+});
+
+let footnotesHtml = '';
+if (footnotesMap && footnotesMap.size > 0) {
+    let listItemsHtml = '';
+    for (const footnote of footnotesMap.values()) {
+        // 각주 내용(footnote.content)을 MarkdownIt으로 HTML 렌더링
+        // 각주 내용은 인라인 마크다운으로 처리되므로 renderInline()을 사용하는 것이 적합합니다.
+        const renderedFootnoteContent = md.renderInline(footnote.content);
+
+        const backRefs = footnote.refs.map(refId => {
+            const sequenceNumber = parseInt(refId.split(':')[1], 10);
+            const displaySequence = sequenceNumber === 1 ? '' : `${sequenceNumber}`;
+            return `<a href="#fnref${refId}" class="footnote-backref" title="Jump back to article">↩︎${displaySequence}</a>`;
+        }).join(' ');
+
+        // ✅ 렌더링된 각주 내용을 사용
+        listItemsHtml += `<li id="fn${footnote.number}">${renderedFootnoteContent} ${backRefs}</li>`;
+    }
+    footnotesHtml = `
+        <hr class="footnotes-sep">
+        <section class="footnotes">
+            <ol>${listItemsHtml}</ol>
+        </section>
+    `;
+}
+// ✅ 디버깅을 위한 console.log 추가:
+// console.log('--- Footnotes.astro Debug ---');
+// console.log('Footnotes Map received:', footnotesMap); // 맵이 제대로 전달되었는지 확인 (비어있지 않은지)
+// console.log('Generated Footnotes HTML:', footnotesHtml); // 생성된 HTML이 비어있지 않은지 확인
+// console.log('--- End Footnotes.astro Debug ---');
+---
+
+{footnotesHtml && (
+<div class="footnotes-container">
+    <div set:html={footnotesHtml} />
+</div>
+    )}
+
+<style>
+    /* 각주 목록에 대한 기본 스타일 */
+    .footnotes-container {
+        margin-top: 0rem;
+        padding-top: 0.5rem;
+        border-top: 1px solid #eee; /* 각주 상단에 구분선 */
+        font-size: 0.9em;
+        color: #555;
+    }
+    .footnotes-container ol {
+        padding-left: 1.5rem; /* 목록 들여쓰기 */
+        margin-bottom: 0; /* 불필요한 하단 여백 제거 */
+    }
+    .footnotes-container li {
+        margin-bottom: 0.5em; /* 각주 항목 간 간격 */
+        line-height: 1.4; /* 줄 간격 */
+    }
+    /* 각주 참조 링크 (예: [1] 뒤의 ↩︎) */
+    .footnotes-container .footnote-backref {
+        margin-left: 0.5em;
+        text-decoration: none;
+        color: #388E3C; /* 링크 색상 */
+    }
+    .footnotes-container .footnote-backref:hover {
+        text-decoration: underline;
+    }
+</style>

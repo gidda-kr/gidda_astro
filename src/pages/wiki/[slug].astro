@@ -1,147 +1,309 @@
 ---
-import WikiPageLayout from '../../layouts/wiki_page.astro';
-import { Remarkable } from 'remarkable';
-import * as cheerio from 'cheerio'; // ✨ cheerio 라이브러리를 임포트합니다.
+// src/pages/wiki/[slug].astro
 
-// Remarkable 인스턴스를 생성하고 각주 기능을 활성화합니다.
-const md = new Remarkable({
-  html: true,
-  typographer: true,
-  linkify: true,
-  footnotes: true,
-});
+import WikiPageLayout from '~/layouts/wiki_page.astro';
+import Content from '~/components/Content.astro';
+import ListItem from '~/components/ListItem.astro';
+import Footnotes from '~/components/Footnotes.astro';
+import Callout from '~/components/Callout.astro';
+import Image from '~/components/Image.astro';
 
-// 1. Astro 빌드 시점에 Strapi에서 모든 위키 항목의 슬러그를 가져옵니다.
-const strapiUrl = 'https://strapi-app-63132904920.asia-northeast3.run.app';
-const allWikiSlugs = new Set();
-try {
-  const response = await fetch(`${strapiUrl}/api/wikis?fields[0]=slug`);
-  const jsonData = await response.json();
-  if (jsonData.data) {
-    jsonData.data.forEach(item => {
-      if (item.attributes && item.attributes.slug) {
-        allWikiSlugs.add(item.attributes.slug);
-      } else if (item.slug) {
-        allWikiSlugs.add(item.slug);
-      }
-    });
-  }
-} catch (error) {
-  console.error('모든 위키 슬러그를 가져오는 데 실패했습니다:', error);
-}
+import MarkdownIt from 'markdown-it';
 
-// 2. 현재 페이지의 상세 데이터를 가져와서 페이지를 생성합니다.
+const components = {
+  'common.content': Content,
+  'common.list-item': ListItem,
+  'common.footnotes': Footnotes,
+  'common.callout': Callout,
+  'common.image': Image,
+};
+
 export async function getStaticPaths() {
-  const strapiUrlForPaths = 'https://strapi-app-63132904920.asia-northeast3.run.app/';
-  const apiPath = '/api/wikis';
+  const strapiUrl = 'https://strapi-app-63132904920.asia-northeast3.run.app';
+  const apiPath = '/api/wikis?populate[content][populate]=*';
+
   try {
-    const response = await fetch(`${strapiUrlForPaths}${apiPath}?fields[0]=slug`);
+    const response = await fetch(`${strapiUrl}${apiPath}`);
     if (!response.ok) {
-      console.error(`getStaticPaths Strapi API 호출 실패: ${response.status} ${response.statusText}`);
+      console.error(`Strapi API 호출 실패: ${response.status}`);
       return [];
     }
-    const jsonData = await response.json();
-    const wikis = jsonData.data;
-    if (!wikis || wikis.length === 0) {
-      console.warn('getStaticPaths: Strapi API에서 데이터를 가져오지 못했거나, 데이터가 비어 있습니다.');
-      return [];
-    }
-    return wikis.map((wiki) => {
-      const slug = (wiki.attributes && wiki.attributes.slug) ? wiki.attributes.slug : wiki.slug;
-      if (!slug) {
-        console.error('getStaticPaths: slug 속성이 없는 위키 항목:', wiki);
-        return null;
-      }
+    const { data } = await response.json();
+    if (!data) return [];
+
+    const allSlugs = new Set(data.map(wiki => wiki.slug).filter(Boolean));
+
+    return data.map((wiki) => {
+      if (!wiki || !wiki.slug) return null;
       return {
-        params: { slug: slug },
-        props: { wiki: wiki },
+        params: { slug: wiki.slug },
+        props: {
+          wiki: wiki,
+          allWikiSlugs: Array.from(allSlugs)  // ✅ 이 이름 확인
+        },
       };
     }).filter(Boolean);
+
   } catch (error) {
-    console.error('getStaticPaths API 호출 중 예외 발생:', error);
+    console.error("getStaticPaths 함수 실행 중 예외 발생:", error);
     return [];
   }
 }
 
-const { wiki: rawWikiData } = Astro.props;
-const strapiUrlForDetail = 'https://strapi-app-63132904920.asia-northeast3.run.app';
-const currentWikiApiPath = `/api/wikis?filters[slug][$eq]=${rawWikiData.slug}&populate=*`;
-let wikiEntry = null;
-try {
-  const response = await fetch(`${strapiUrlForDetail}${currentWikiApiPath}`);
-  const jsonData = await response.json();
-  if (jsonData.data && jsonData.data.length > 0) {
-    wikiEntry = (jsonData.data[0].attributes) ? jsonData.data[0].attributes : jsonData.data[0];
-  }
-} catch (error) {
-  console.error('위키 항목 상세 정보를 가져오는 데 실패했습니다:', error);
+// ✅ 핵심 수정: 정확한 prop 이름 사용
+const { wiki, allWikiSlugs } = Astro.props;
+const allSlugsSet = new Set(allWikiSlugs);
+
+// ✅ 디버깅용 로그 추가
+console.log('allWikiSlugs:', allWikiSlugs);
+console.log('allSlugsSet size:', allSlugsSet.size);
+
+if (!wiki) {
+  return Astro.redirect('/404');
 }
 
-// 1. Strapi에서 가져온 마크다운 본문을 Remarkable을 사용해 HTML로 변환합니다.
-import { markdown } from 'astro/components';
-let processedMarkdownContent = wikiEntry?.content || '';
-const htmlContentFromMarkdown = md.render(processedMarkdownContent);
+// --- ✅ meta description 생성 로직 시작 ---
+const firstContentItem = wiki.content?.find(
+    (item) => item.__component === 'common.content'
+);
 
-// ✨✨✨ 2. 변환된 HTML을 cheerio로 파싱하고 <a> 태그를 찾아 수정합니다. ✨✨✨
-let finalHtmlContent = '';
-if (htmlContentFromMarkdown) {
-  const $ = cheerio.load(htmlContentFromMarkdown); // HTML을 로드하여 DOM처럼 조작
+let pageDescription = '';
 
-  // <a> 태그를 모두 찾습니다.
-  $('a').each((i, el) => {
-    const href = $(el).attr('href'); // href 속성 가져오기
-    if (href) {
-      // 💡 링크가 각주 링크(#fn:1)나 내부 앵커(#heading)인지 확인합니다.
-      if (href.startsWith('#')) {
-        // 각주 링크는 그대로 둡니다.
-        return; // 다음 <a> 태그로 넘어갑니다.
-      }
+if (firstContentItem && firstContentItem.content) {
+  let plainText = firstContentItem.content
+      .replace(/<[^>]*>/g, '')
+      .replace(/\[\^[^\]]+\]/g, '')
+      .replace(/\[[^\]]+\]\([^)]+\)/g, '');
 
-      // 💡 내부 위키 링크인지 확인합니다.
-      if (href.startsWith('/wiki/')) {
-        const linkSlug = href.substring('/wiki/'.length);
+  pageDescription = plainText.length > 150
+      ? `${plainText.substring(0, 150).trim()}...`
+      : plainText.trim();
+}
+// --- ✅ meta description 생성 로직 끝 ---
 
-        // 슬러그가 존재하지 않는지 확인
-        if (!allWikiSlugs.has(linkSlug)) {
-          // 존재하지 않으면 'red-link' 클래스를 추가하고 href를 '페이지 생성' 링크로 바꿉니다.
-          const linkText = $(el).text();
-          const encodedTitle = encodeURIComponent(linkText);
-          $(el).addClass('red-link').attr('href', `/create-wiki?title=${encodedTitle}`);
-        }
+const globalFootnotes = new Map<string, { number: number; content: string; refs: string[] }>();
+let footnoteCounter = 1;
+const footnoteRefCounters = new Map<string, number>();
+
+const mdForContent = new MarkdownIt({
+  html: true,
+  typographer: true,
+  linkify: true,
+});
+
+const defaultRender = mdForContent.renderer.rules.link_open || function(tokens, idx, options, env, self) {
+  return self.renderToken(tokens, idx, options);
+};
+
+mdForContent.renderer.rules.link_open = function (tokens: MarkdownIt.Token[], idx: number, options: MarkdownIt.Options, env: unknown, self: MarkdownIt.Renderer) {
+  const token = tokens[idx];
+  const hrefIndex = token.attrIndex('href');
+
+  if (hrefIndex >= 0) {
+    const href = token.attrs![hrefIndex][1];
+
+    if (href.startsWith('/wiki/')) {
+      const linkSlug = href.substring('/wiki/'.length);
+
+      // ✅ 디버깅용 로그 추가
+      console.log('Checking link slug:', linkSlug, 'exists:', allSlugsSet.has(linkSlug));
+
+      if (allSlugsSet && !allSlugsSet.has(linkSlug)) {
+        token.attrJoin('class', 'red-link');
       }
     }
-  });
+  }
+  return defaultRender(tokens, idx, options, env, self);
+};
 
-  // 수정된 HTML을 다시 문자열로 가져옵니다.
-  finalHtmlContent = $.html();
+// --- 1단계: 각주 정의 수집 ---
+function collectFootnoteDefinitions(contentArray) {
+  if (!contentArray || !Array.isArray(contentArray)) return;
+
+  contentArray.forEach(item => {
+    if (item.__component === 'common.content' && item.content) {
+      item.content.replace(/^\[(\^[^\]]+)\]:\s*(.+)$/gm, (match, ref, definition) => {
+        if (!globalFootnotes.has(ref)) {
+          globalFootnotes.set(ref, {
+            number: footnoteCounter++,
+            content: definition.trim(),
+            refs: []
+          });
+        }
+        return match;
+      });
+    }
+    else if (item.__component === 'common.list-item' && item.items) {
+      item.items.forEach(listItem => {
+        if (listItem && typeof listItem.ListText === 'string') {
+          listItem.ListText.replace(/^\[(\^[^\]]+)\]:\s*(.+)$/gm, (match, ref, definition) => {
+            if (!globalFootnotes.has(ref)) {
+              globalFootnotes.set(ref, {
+                number: footnoteCounter++,
+                content: definition.trim(),
+                refs: []
+              });
+            }
+            return match;
+          });
+        }
+      });
+    }
+  });
 }
+
+// --- 2단계: 각주 참조 변환 및 콘텐츠 렌더링 ---
+function processContentAfterFootnotesCollected(contentArray) {
+  if (!contentArray || !Array.isArray(contentArray)) return [];
+
+  const processFootnoteRefsInText = (text: string) => {
+    return text.replace(/\[(\^[^\]]+)\]/g, (match, ref) => {
+      const footnote = globalFootnotes.get(ref);
+      if (footnote) {
+        const currentCount = (footnoteRefCounters.get(ref) || 0) + 1;
+        footnoteRefCounters.set(ref, currentCount);
+
+        const displayRefText = currentCount === 1 ? `${footnote.number}` : `${footnote.number}:${currentCount}`;
+        const internalRefId = `${footnote.number}:${currentCount}`;
+
+        footnote.refs.push(internalRefId);
+
+        return `<sup><a href="#fn${footnote.number}" id="fnref${internalRefId}" class="footnote-ref">${displayRefText}</a></sup> `;
+      }
+      return match;
+    });
+  };
+
+  return contentArray.map(item => {
+    if (item.__component === 'common.content' && item.content) {
+      let currentContent = item.content;
+
+      currentContent = currentContent.replace(/^\[(\^[^\]]+)\]:\s*(.+)$/gm, '');
+      currentContent = processFootnoteRefsInText(currentContent);
+
+      const htmlContent = mdForContent.render(currentContent);
+      return { ...item, content: htmlContent };
+
+    } else if (item.__component === 'common.list-item' && item.items) {
+      const processedItems = item.items.map((listItem, index) => {
+        if (listItem && typeof listItem.ListText === 'string') {
+          let listItemText = listItem.ListText;
+          listItemText = listItemText.replace(/^\[(\^[^\]]+)\]:\s*(.+)$/gm, '');
+          listItemText = processFootnoteRefsInText(listItemText);
+
+          const htmlListItemText = mdForContent.render(listItemText);
+          const finalHtml = htmlListItemText.replace(/^<p>(.*)<\/p>\s*$/s, '$1').trim();
+
+          return {
+            ...listItem,
+            ListText: finalHtml
+          };
+        }
+        return listItem;
+      });
+
+      return { ...item, items: processedItems };
+    }
+    return item;
+  });
+}
+
+// --- 실행 순서 ---
+collectFootnoteDefinitions(wiki.content);
+
+const processedContent = processContentAfterFootnotesCollected(wiki.content);
+
+if (globalFootnotes.size > 0) {
+  const hasFootnotesComponent = processedContent.some(item => item.__component === 'common.footnotes');
+
+  if (!hasFootnotesComponent) {
+    processedContent.push({
+      __component: 'common.footnotes',
+      id: 'auto-generated-footnotes'
+    });
+  }
+}
+
+const lastUpdated = new Date(wiki.updatedAt).toLocaleDateString('ko-KR', {
+  year: 'numeric',
+  month: 'long',
+  day: 'numeric',
+});
 ---
 
-<WikiPageLayout title={wikiEntry?.title || '페이지 없음'}>
-  <article>
-    {wikiEntry ? (
-        <>
-          <h1>{wikiEntry.title}</h1>
-          {/* ✨ 변환된 최종 HTML 내용을 표시합니다. */}
-          <Fragment set:html={finalHtmlContent} />
-        </>
-    ) : (
-        <p>해당 위키 항목을 찾을 수 없습니다.</p>
-    )}
+<WikiPageLayout title={wiki.title} description={pageDescription}>
+  <article class="wiki-content">
+    <h1>{wiki.title}</h1>
+    <div class="wiki-meta">
+      <span class="page-type-label">위키</span>
+      <p class="last-updated">최근 업데이트: {lastUpdated}</p>
+    </div>
+
+    {processedContent.map((componentData, index) => {
+      const Component = components[componentData.__component];
+      if (!Component) {
+        console.warn(`컴포넌트를 찾을 수 없습니다: ${componentData.__component}`);
+        return null;
+      }
+
+      if (componentData.__component === 'common.footnotes') {
+        return <Component key={`${componentData.__component}-${index}`} footnotesMap={globalFootnotes} />;
+      }
+      return <Component key={`${componentData.__component}-${index}`} {...componentData} />;
+    })}
   </article>
 </WikiPageLayout>
 
 <style is:global>
-  .red-link {
-    color: #ff6666; /* 살짝 연한 빨강 */
-    text-decoration: none;
-  }
-  .red-link:hover {
-    color: #ff3333;
-    text-decoration: none;
-  }
-  /* BaseLayout에서 설정한 스타일과 충돌하지 않도록 명시적으로 선택자를 사용합니다. */
-  .wiki-content-container a.red-link {
+  .wiki-content a.red-link {
     color: #ff6666;
+    text-decoration: none;
+  }
+  .wiki-content a.red-link:hover {
+    color: #ff3333;
+    text-decoration: underline;
+  }
+
+  .footnote-ref {
+    vertical-align: super;
+    font-size: 0.75em;
+    line-height: 1;
+    text-decoration: none;
+    color: #388E3C;
+    font-weight: bold;
+  }
+  .footnote-ref:hover {
+    text-decoration: underline;
+  }
+
+  .wiki-meta {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: -0.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .page-type-label {
+    display: inline-block;
+    background: #355E3B;
+    color: white;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.5rem 1rem;
+    border-radius: 5px;
+    vertical-align: middle;
+    line-height: 1;
+    margin: 0;
+  }
+</style>
+
+<style>
+  .last-updated {
+    color: #666;
+    font-size: 0.9em;
+    margin: 0;
   }
 </style>

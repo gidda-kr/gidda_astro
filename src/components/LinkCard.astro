@@ -1,0 +1,287 @@
+---
+// src/components/LinkCard.astro
+import * as cheerio from 'cheerio';
+
+interface Props {
+    url: string;
+    type?: 'wiki' | 'external';
+}
+const { url, type = 'external' } = Astro.props as Props;
+
+let ogData = {
+    title: url,
+    description: '링크의 상세 정보를 불러오고 있습니다...',
+    image: null as string | null,
+    siteName: new URL(url).hostname,
+};
+
+// Wiki 타입인 경우에도 OG 데이터 수집 (제목을 위해)
+if (type === 'wiki') {
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch URL: ${response.statusText}`);
+        }
+        const html = await response.text();
+        const $ = cheerio.load(html);
+
+        const getOgTag = (property: string) => $(`meta[property="${property}"]`).attr('content');
+
+        const title = getOgTag('og:title') || $('title').text() || url;
+
+        ogData = {
+            title: title,
+            description: '긷다 위키에서 더 자세히 보기',
+            image: null, // Wiki는 이미지 없음
+            siteName: '긷다 위키',
+        };
+
+    } catch (error) {
+        console.error(`LinkCard: Failed to get title for wiki ${url}`, error);
+        // 실패시 URL에서 제목 추출
+        const urlParts = url.split('/');
+        const wikiSlug = urlParts[urlParts.length - 1] || urlParts[urlParts.length - 2];
+        const wikiTitle = wikiSlug.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+        ogData = {
+            title: wikiTitle,
+            description: '긷다 위키에서 더 자세히 보기',
+            image: null,
+            siteName: '긷다 위키',
+        };
+    }
+} else {
+    // External 링크인 경우에만 OG 데이터 수집
+    const isValidImageUrl = async (imageUrl: string): Promise<boolean> => {
+        try {
+            const fullImageUrl = imageUrl.startsWith('http') ? imageUrl : new URL(imageUrl, url).href;
+            const response = await fetch(fullImageUrl, { method: 'HEAD' });
+            const contentType = response.headers.get('content-type');
+            return response.ok && contentType?.startsWith('image/');
+        } catch {
+            return false;
+        }
+    };
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch URL: ${response.statusText}`);
+        }
+        const html = await response.text();
+        const $ = cheerio.load(html);
+
+        const getOgTag = (property: string) => $(`meta[property="${property}"]`).attr('content');
+
+        const title = getOgTag('og:title') || $('title').text() || url;
+        const description = getOgTag('og:description') || $('meta[name="description"]').attr('content') || '설명을 찾을 수 없습니다.';
+        let image = getOgTag('og:image');
+        const siteName = getOgTag('og:site_name') || new URL(url).hostname;
+
+        if (image) {
+            if (!image.startsWith('http')) {
+                image = new URL(image, url).href;
+            }
+            const isValid = await isValidImageUrl(image);
+            if (!isValid) {
+                image = null;
+            }
+        }
+
+        ogData = { title, description, image, siteName };
+
+    } catch (error) {
+        console.error(`LinkCard: Failed to get Open Graph data for ${url}`, error);
+        ogData.description = '링크 정보를 불러오는 데 실패했습니다.';
+    }
+}
+---
+
+<a href={url} target="_blank" rel="noopener noreferrer" class={`linkcard ${type === 'wiki' ? 'linkcard-wiki' : 'linkcard-external'}`}>
+    <div class="linkcard-content">
+        {type === 'external' && ogData.image && (
+                <div class="linkcard-image">
+                    <img src={ogData.image} alt={ogData.title} loading="lazy" onerror="this.parentElement.style.display='none'" />
+                </div>
+        )}
+        <div class="linkcard-text">
+            <div class="linkcard-sitename">{ogData.siteName}</div>
+            <div class="linkcard-title">{ogData.title}</div>
+            {type === 'external' && <p class="linkcard-description">{ogData.description}</p>}
+        </div>
+        {type === 'wiki' && (
+                <div class="linkcard-icon">
+                    <span>→</span>
+                </div>
+        )}
+    </div>
+</a>
+
+<style>
+    .linkcard {
+        display: block;
+        width: 100%;
+        margin: 0.5rem auto;
+        background: #f4f0e5;
+        border: 1px solid #355E3B;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(53, 94, 59, 0.1);
+        overflow: hidden;
+        text-decoration: none;
+        color: inherit;
+        transition: all 0.2s ease;
+    }
+
+    .linkcard:hover {
+        box-shadow: 0 4px 12px rgba(53, 94, 59, 0.2);
+        transform: translateY(-1px);
+        border-color: #4CAF50;
+    }
+
+    /* External 링크 스타일 (기본) */
+    .linkcard-external {
+        max-width: 600px;
+    }
+
+    .linkcard-external .linkcard-content {
+        display: flex;
+        flex-direction: row;
+        gap: 0;
+    }
+
+    .linkcard-external .linkcard-image {
+        width: 140px;
+        flex-shrink: 0;
+        overflow: hidden;
+        align-self: stretch;
+    }
+
+    .linkcard-external .linkcard-image img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .linkcard-external .linkcard-text {
+        flex: 1;
+        padding: 0.5rem 0.75rem;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .linkcard-external .linkcard-sitename,
+    .linkcard-external .linkcard-title {
+        margin-bottom: 0.5rem;
+    }
+
+    .linkcard-external .linkcard-content:not(:has(.linkcard-image)) .linkcard-text {
+        padding: 1.5rem 1.25rem;
+    }
+
+    /* Wiki 링크 스타일 (납작한 카드) */
+    .linkcard-wiki {
+        max-width: 100%;
+        margin: 1rem 0;
+        background: #fbf8f0;
+        border: 1px solid #059669;
+        border-radius: 6px;
+    }
+
+    .linkcard-wiki:hover {
+        background: #f0f4f0;
+        border-color: #047857;
+        box-shadow: 0 2px 8px rgba(5, 150, 105, 0.15);
+    }
+
+    .linkcard-wiki .linkcard-content {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        gap: 1rem;
+    }
+
+    .linkcard-wiki .linkcard-text {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .linkcard-wiki .linkcard-sitename {
+        font-size: 0.7rem;
+        color: #047857;
+        text-transform: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        margin-bottom: 0.25rem;
+    }
+
+    .linkcard-wiki .linkcard-title {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: #065f46;
+        line-height: 1.3;
+        margin: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .linkcard-wiki .linkcard-icon {
+        flex-shrink: 0;
+        color: #059669;
+        font-size: 1.2rem;
+        font-weight: bold;
+    }
+
+    /* 공통 스타일 */
+    .linkcard-sitename {
+        font-size: 0.75rem;
+        color: #4CAF50;
+        text-transform: uppercase;
+        font-weight: 600;
+        letter-spacing: 0.05em;
+        margin-top: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    .linkcard-title {
+        font-size: 1rem;
+        font-weight: 700;
+        color: #355E3B;
+        line-height: 1.3;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        word-break: break-word;
+    }
+
+    .linkcard-description {
+        font-size: 0.875rem;
+        color: #2d5532;
+        line-height: 1.2;
+        margin: 0;
+        word-break: break-word;
+        overflow: hidden;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+    }
+
+    /* 반응형 */
+    @media (max-width: 768px) {
+        .linkcard-wiki .linkcard-content {
+            padding: 0.625rem 0.875rem;
+        }
+
+        .linkcard-wiki .linkcard-title {
+            font-size: 0.85rem;
+        }
+
+        .linkcard-wiki .linkcard-sitename {
+            font-size: 0.65rem;
+        }
+    }
+</style>

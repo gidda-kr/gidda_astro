@@ -1,123 +1,168 @@
 ---
-import WebzineArticleLayout from '../../layouts/webzine_page.astro';
-import { Remarkable } from 'remarkable';
+// src/pages/webzine/[slug].astro
 
-const md = new Remarkable({
-    html: true,
-    typographer: true,
-    linkify: true,
-    footnotes: true,
-});
+import WebzineLayout from '~/layouts/WebzineLayout.astro';
+import Content from '~/components/Content.astro';
+import LinkCard from '~/components/LinkCard.astro';
+import ListItem from '~/components/ListItem.astro';
+import Callout from '~/components/Callout.astro';
+import Image from '~/components/Image.astro';
+
+import MarkdownIt from 'markdown-it'; // ✅ MarkdownIt 임포트
+
+const components = {
+    'common.content': Content,
+    'common.link-card': LinkCard,
+    'common.list-item': ListItem,
+    'common.callout': Callout,
+    'common.image': Image,
+};
 
 export async function getStaticPaths() {
     const strapiUrl = 'https://strapi-app-63132904920.asia-northeast3.run.app';
-    const apiPath = '/api/webzine-articles?fields=slug';
 
     try {
-        const response = await fetch(`${strapiUrl}${apiPath}`);
-
-        if (!response.ok) {
-            console.error(`getStaticPaths API 실패: ${response.status}`);
+        const metaUrl = `${strapiUrl}/api/webzine-articles?populate[0]=author&populate[1]=featuredImage`;
+        const metaResponse = await fetch(metaUrl);
+        if (!metaResponse.ok) {
+            console.error(`메타데이터 API 호출 실패: ${metaResponse.status}`);
             return [];
         }
+        const metaData = await metaResponse.json();
 
-        const jsonData = await response.json();
-        const articles = jsonData.data;
-
-        if (!articles || articles.length === 0) {
-            console.warn('getStaticPaths: 데이터 없음');
+        const contentUrl = `${strapiUrl}/api/webzine-articles?populate[content][populate]=*`;
+        const contentResponse = await fetch(contentUrl);
+        if (!contentResponse.ok) {
+            console.error(`컨텐츠 API 호출 실패: ${contentResponse.status}`);
             return [];
         }
+        const contentData = await contentResponse.json();
 
-        return articles.map((article) => {
-            // Strapi v5 구조: attributes 없이 바로 slug 접근
-            const slug = article.slug;
-
-            if (!slug) {
-                console.error('slug 없음:', article);
-                return null;
-            }
-
+        const mergedArticles = metaData.data?.map(metaArticle => {
+            const contentArticle = contentData.data?.find(c => c.id === metaArticle.id);
             return {
-                params: { slug: slug },
-                props: { slug: slug },
+                ...metaArticle,
+                content: contentArticle?.content || []
             };
-        }).filter(Boolean);
+        });
+
+        return mergedArticles?.map((article) => {
+            const slug = article?.slug;
+            if (slug && typeof slug === 'string') {
+                return {
+                    params: { slug },
+                    props: { article },
+                };
+            }
+            return null;
+        }).filter(Boolean) || [];
+
     } catch (error) {
-        console.error('getStaticPaths 에러:', error);
+        console.error("getStaticPaths 함수 실행 중 예외 발생:", error);
         return [];
     }
 }
 
-// props에서 slug 받기
-const { slug } = Astro.props;
+const { article } = Astro.props;
 
-// 상세 데이터 가져오기 (featuredImage로 수정)
-const strapiUrl = 'https://strapi-app-63132904920.asia-northeast3.run.app';
-const apiPath = `/api/webzine-articles?filters[slug][$eq]=${slug}&populate=*`;
-
-let articleEntry = null;
-
-try {
-    const response = await fetch(`${strapiUrl}${apiPath}`);
-
-    if (!response.ok) {
-        console.error(`상세 API 실패: ${response.status}`);
-    } else {
-        const jsonData = await response.json();
-
-        if (jsonData.data && jsonData.data.length > 0) {
-            const rawEntry = jsonData.data[0];
-
-            // Strapi v5 구조에 맞게 데이터 추출 (attributes 없음)
-            articleEntry = {
-                id: rawEntry.id,
-                documentId: rawEntry.documentId,
-                title: rawEntry.title,
-                content: rawEntry.content,
-                slug: rawEntry.slug,
-                publishedat: rawEntry.publishedat || rawEntry.publishedat,
-                createdAt: rawEntry.createdAt,
-                updatedAt: rawEntry.updatedAt,
-                // author 처리
-                author: rawEntry.author || null,
-                // featuredImage 처리 - 이미 완전한 객체로 옴
-                featuredImage: rawEntry.featuredImage ? {
-                    url: rawEntry.featuredImage.url,
-                    alt: rawEntry.featuredImage.alternativeText || rawEntry.featuredImage.name || 'Featured Image'
-                } : null,
-            };
-
-            // ✨ 추가 디버깅: 최종 articleEntry 확인
-        }
-    }
-} catch (error) {
-    console.error('API 호출 에러:', error);
+if (!article) {
+    return Astro.redirect('/404');
 }
 
-// 마크다운 처리
-const htmlContent = articleEntry?.content ? md.render(articleEntry.content) : '';
+// --- ✅ meta description 생성 로직 시작 ---
+const firstContentComponent = article.content?.find(
+    (item) => item.__component === 'common.content'
+);
+
+let description = '';
+
+if (firstContentComponent && firstContentComponent.content) {
+    let plainText = firstContentComponent.content
+        .replace(/<[^>]*>/g, '')
+        .replace(/\[\^[^\]]+\]/g, '')
+        .replace(/\[[^\]]+\]\([^)]+\)/g, '');
+
+    description = plainText.length > 150
+        ? `${plainText.substring(0, 150).trim()}...`
+        : plainText.trim();
+}
+
+// --- ✅ meta description 생성 로직 끝 ---
+
+// 이미지 URL 처리 함수
+function getImageUrl(featuredImage) {
+    if (!featuredImage) return null;
+    const baseUrl = 'https://strapi-app-63132904920.asia-northeast3.run.app';
+
+    let imageUrlPath = featuredImage.formats?.large?.url || featuredImage.formats?.medium?.url || featuredImage.formats?.small?.url || featuredImage.url;
+
+    if (imageUrlPath && !imageUrlPath.startsWith('http')) {
+        imageUrlPath = `${baseUrl}${imageUrlPath}`;
+    }
+    return imageUrlPath;
+}
+
+// ✅ MarkdownIt 인스턴스 생성 (웹진용)
+const mdForWebzineContent = new MarkdownIt({
+    html: true,
+    typographer: true,
+    linkify: true,
+});
+
+// ✅ 웹진 콘텐츠의 마크다운을 HTML로 변환하는 함수
+function processWebzineContent(contentArray) {
+    if (!contentArray || !Array.isArray(contentArray)) return [];
+
+    return contentArray.map(item => {
+        if (item.__component === 'common.content' && item.content) {
+            // Content 컴포넌트의 마크다운을 HTML로 변환
+            const htmlContent = mdForWebzineContent.render(item.content);
+            return { ...item, content: htmlContent };
+        } else if (item.__component === 'common.list-item' && item.items) {
+            const processedItems = item.items.map(listItem => {
+                if (listItem && typeof listItem.ListText === 'string') { // ListItem의 필드명 확인 (ListText)
+                    // ListItem의 마크다운을 HTML로 변환 (중첩 리스트를 위해 render() 사용)
+                    const htmlListItemText = mdForWebzineContent.render(listItem.ListText);
+                    return { ...listItem, ListText: htmlListItemText };
+                }
+                return listItem;
+            });
+            return { ...item, items: processedItems };
+        }
+        // LinkCard와 같은 다른 컴포넌트는 마크다운 텍스트 필드가 없으므로 그대로 반환
+        return item;
+    });
+}
+
+// ✅ article.content를 HTML로 미리 변환
+const processedArticleContent = processWebzineContent(article.content);
+
 ---
 
-<WebzineArticleLayout
-        title={articleEntry?.title || '기사 없음'}
-        author={articleEntry?.author}
-        publishedat={articleEntry?.publishedat || ''}
-        featuredImage={articleEntry?.featuredImage}
+<WebzineLayout
+        title={article.title}
+        description={description}
+        author={article.author}
+        publishedat={article.publishedat}
+        featuredImage={article.featuredImage ? {
+            url: getImageUrl(article.featuredImage),
+            alt: article.featuredImage.alternativeText || article.title
+        } : undefined}
 >
-    <article>
-        {articleEntry ? (
-            articleEntry.content ? (
-                    <Fragment set:html={htmlContent} />
-            ) : (
-                    <div>
-                        <h2>본문이 준비되지 않았습니다.</h2>
-                        <p>기사 ID: {articleEntry.id}</p>
-                        <p>슬러그: {articleEntry.slug}</p>
-                    </div>
-            )
-        ) : (
-                <p>해당 웹진 기사를 찾을 수 없습니다.</p>
-        )}
-    </article>
-</WebzineArticleLayout>
+    {/* ✅ 미리 처리된 processedArticleContent를 사용 */}
+    {processedArticleContent && processedArticleContent.map((componentData, index) => {
+        const Component = components[componentData.__component];
+
+        if (!Component) {
+            console.warn(`컴포넌트를 찾을 수 없습니다: ${componentData.__component}`);
+            return null;
+        }
+
+        if (componentData.__component === 'common.list-item' && (!componentData.items || !Array.isArray(componentData.items))) {
+            console.warn(`list-item에 items가 없습니다:`, componentData);
+            return null;
+        }
+
+        return <Component key={`${componentData.__component}-${index}`} {...componentData} />;
+    })}
+</WebzineLayout>

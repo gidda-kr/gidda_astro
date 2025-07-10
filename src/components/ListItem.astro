@@ -1,0 +1,36 @@
+---
+// src/components/ListItem.astro
+
+interface ListItemProps {
+    heading?: string;
+    type: 'ordered' | 'unordered';
+    items: {
+        id: number;
+        ListText?: string; // ✅ 이 ListText는 이제 HTML로 변환된 문자열입니다.
+    }[];
+}
+
+const { heading, type, items } = Astro.props as ListItemProps;
+
+---
+
+<div class="prose max-w-none dark:prose-invert my-6">
+
+    {heading && <h2 class="!mt-0 !mb-3">{heading}</h2>}
+
+    {type === 'ordered' ? (
+            <ol>
+                {items && items.map(item => (
+                    // ✅ item.ListText가 이미 HTML이므로, renderListItem 함수 호출을 제거하고 직접 set:html
+                    <li set:html={item && typeof item.ListText === 'string' ? item.ListText : ''}></li>
+                ))}
+            </ol>
+    ) : (
+            <ul>
+                {items && items.map(item => (
+                    // ✅ item.ListText가 이미 HTML이므로, renderListItem 함수 호출을 제거하고 직접 set:html
+                    <li set:html={item && typeof item.ListText === 'string' ? item.ListText : ''}></li>
+                ))}
+            </ul>
+    )}
+</div>
