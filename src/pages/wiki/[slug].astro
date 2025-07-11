@@ -203,9 +203,24 @@ function processContentAfterFootnotesCollected(contentArray) {
         }
         return listItem;
       });
-
       return { ...item, items: processedItems };
     }
+
+    else if (item.__component === 'common.callout' && item.content) {
+      // Callout의 content와 source를 마크다운으로 렌더링합니다.
+      const processedContent = mdForContent.render(processFootnoteRefsInText(item.content));
+      let processedSource = item.source || '';
+
+      if (item.source) {
+        // source도 마크다운 렌더링을 적용합니다.
+        const renderedSource = mdForContent.render(item.source);
+        // render() 함수가 자동으로 생성하는 <p> 태그를 제거하여 깔끔하게 표시합니다.
+        processedSource = renderedSource.replace(/^<p>(.*)<\/p>\s*$/s, '$1').trim();
+      }
+
+      return { ...item, content: processedContent, source: processedSource };
+    }
+
     return item;
   });
 }
