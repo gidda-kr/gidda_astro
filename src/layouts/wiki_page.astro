@@ -33,13 +33,13 @@ const { title, description = "Astro description"  } = Astro.props; //
       line-height: 1.7;
     }
 
-    .wiki-body {
+    .wiki-content {
       font-size: 1rem;
       line-height: 1.7;
       color: #2a2a2a;
     }
 
-    .wiki-body h1 {
+    .wiki-content h1 {
       font-size: 1.75rem;
       font-weight: 700;
       line-height: 1.3;
@@ -51,7 +51,7 @@ const { title, description = "Astro description"  } = Astro.props; //
       padding-bottom: 0.75rem;
     }
 
-    .wiki-body h2 {
+    .wiki-content h2 {
       font-size: 1.5rem;
       font-weight: 600;
       line-height: 1.4;
@@ -61,7 +61,7 @@ const { title, description = "Astro description"  } = Astro.props; //
       letter-spacing: -0.01em;
     }
 
-    .wiki-body h3 {
+    .wiki-content h3 {
       font-size: 1.25rem;
       font-weight: 600;
       line-height: 1.4;
@@ -70,7 +70,7 @@ const { title, description = "Astro description"  } = Astro.props; //
       color: #333;
     }
 
-    .wiki-body p {
+    .wiki-content p {
       margin-bottom: 1.5rem;
       text-align: left;
       word-spacing: normal;
@@ -78,7 +78,7 @@ const { title, description = "Astro description"  } = Astro.props; //
     }
 
     /* 이미지 스타일 */
-    .wiki-body img {
+    .wiki-content img {
       max-width: 100%;
       height: auto;
       display: block;
@@ -88,13 +88,13 @@ const { title, description = "Astro description"  } = Astro.props; //
       border: 1px solid #e8e8e8;
     }
 
-    .wiki-body img[width] {
+    .wiki-content img[width] {
       width: auto;
       max-width: 100%;
     }
 
     /* URL과 긴 텍스트 처리 */
-    .wiki-body a[href*="://"] {
+    .wiki-content a[href*="://"] {
       word-break: break-all;
       overflow-wrap: break-word;
       max-width: 100%;
@@ -102,18 +102,18 @@ const { title, description = "Astro description"  } = Astro.props; //
     }
 
     /* 강조 텍스트 */
-    .wiki-body strong {
+    .wiki-content strong {
       font-weight: 600;
       color: #1a1a1a;
     }
 
-    .wiki-body em {
+    .wiki-content em {
       font-style: italic;
       color: #444;
     }
 
     /* 인용구 스타일 - 심플하게 */
-    .wiki-body blockquote {
+    .wiki-content blockquote {
       margin: 2rem 0;
       padding: 1rem 1.5rem;
       background-color: #f9f9f9;
@@ -122,33 +122,33 @@ const { title, description = "Astro description"  } = Astro.props; //
       color: #555;
     }
 
-    .wiki-body blockquote p {
+    .wiki-content blockquote p {
       margin-bottom: 0;
     }
 
     /* 리스트 스타일 */
-    .wiki-body ul, .wiki-body ol {
+    .wiki-content ul, .wiki-content ol {
       margin: 1.5rem 0;
       padding-left: 1.5rem;
     }
 
-    .wiki-body ul li {
+    .wiki-content ul li {
       position: relative;
       margin-bottom: 0.5rem;
       line-height: 1.7;
     }
 
-    .wiki-body ul li::marker {
+    .wiki-content ul li::marker {
       color: #355E3B;
     }
 
-    .wiki-body ol li::marker {
+    .wiki-content ol li::marker {
       color: #355E3B;
       font-weight: 600;
     }
 
     /* 테이블 스타일 */
-    .wiki-body table {
+    .wiki-content table {
       width: 100%;
       border-collapse: collapse;
       margin: 2rem 0;
@@ -159,11 +159,11 @@ const { title, description = "Astro description"  } = Astro.props; //
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     }
 
-    .wiki-body table thead {
+    .wiki-content table thead {
       background: #fbf8f0;
     }
 
-    .wiki-body table th {
+    .wiki-content table th {
       padding: 1rem;
       text-align: left;
       font-weight: 600;
@@ -171,17 +171,17 @@ const { title, description = "Astro description"  } = Astro.props; //
       border-bottom: 2px solid #e5e7eb;
     }
 
-    .wiki-body table td {
+    .wiki-content table td {
       padding: 0.75rem 1rem;
       border-bottom: 1px solid #f3f4f6;
     }
 
-    .wiki-body table tr:hover {
+    .wiki-content table tr:hover {
       background: #fafbfc;
     }
 
     /* 코드 블록 처리 */
-    .wiki-body pre {
+    .wiki-content pre {
       overflow-x: auto;
       background: #1f2937;
       color: #f9fafb;
@@ -192,7 +192,7 @@ const { title, description = "Astro description"  } = Astro.props; //
       line-height: 1.5;
     }
 
-    .wiki-body code {
+    .wiki-content code {
       background: #f3f4f6;
       color: #374151;
       padding: 0.2rem 0.4rem;
@@ -201,7 +201,7 @@ const { title, description = "Astro description"  } = Astro.props; //
       font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
     }
 
-    .wiki-body pre code {
+    .wiki-content pre code {
       background: none;
       color: inherit;
       padding: 0;
@@ -224,62 +224,62 @@ const { title, description = "Astro description"  } = Astro.props; //
     }
 
     /* 각주 번호 링크 색상 - 일반 링크와 동일하게 */
-    .wiki-body a[href^="#fn:"],
-    .wiki-body a[href^="#fnref:"] {
+    .wiki-content a[href^="#fn:"],
+    .wiki-content a[href^="#fnref:"] {
       color: inherit; /* BaseLayout의 링크 색상 사용 */
     }
 
     /* 리스트 내부 p 태그 마진 조정 */
-    .wiki-body ul p,
-    .wiki-body ol p,
-    .wiki-body li p {
+    .wiki-content ul p,
+    .wiki-content ol p,
+    .wiki-content li p {
       margin-bottom: 0.5rem !important; /* 기본 1.5rem에서 0.5rem로 축소 */
       margin-top: 0 !important;
     }
 
     /* 리스트 아이템 내부 마지막 p 태그는 마진 제거 */
-    .wiki-body li p:last-child {
+    .wiki-content li p:last-child {
       margin-bottom: 0 !important;
     }
 
     /* 중첩 리스트 간격 조정 */
-    .wiki-body ul ul,
-    .wiki-body ol ol,
-    .wiki-body ul ol,
-    .wiki-body ol ul {
+    .wiki-content ul ul,
+    .wiki-content ol ol,
+    .wiki-content ul ol,
+    .wiki-content ol ul {
       margin-top: 0.5rem;
       margin-bottom: 0.5rem;
     }
 
     /* 리스트 아이템 자체 간격 조정 */
-    .wiki-body li {
+    .wiki-content li {
       margin-bottom: 0.75rem; /* 기존 0.5rem에서 0.75rem로 약간 증가 */
       line-height: 1.7;
     }
 
     /* 중첩 리스트 내부 li 간격 더 줄이기 */
-    .wiki-body ul ul li,
-    .wiki-body ol ol li,
-    .wiki-body ul ol li,
-    .wiki-body ol ul li {
+    .wiki-content ul ul li,
+    .wiki-content ol ol li,
+    .wiki-content ul ol li,
+    .wiki-content ol ul li {
       margin-bottom: 0.25rem;
     }
 
     /* 중첩된 리스트의 패딩 조정 */
-    .wiki-body li ul,
-    .wiki-body li ol {
+    .wiki-content li ul,
+    .wiki-content li ol {
       margin: 0.5rem 0;
       padding-left: 1.25rem;
     }
 
     /* 일반 문단과 리스트 내부 문단을 구분 */
-    .wiki-body p:not(li p) {
+    .wiki-content p:not(li p) {
       margin-bottom: 1.5rem; /* 일반 문단은 기존 간격 유지 */
     }
 
     /* 리스트 전체 간격 조정 */
-    .wiki-body ul,
-    .wiki-body ol {
+    .wiki-content ul,
+    .wiki-content ol {
       margin: 1.25rem 0; /* 기존 1.5rem에서 1.25rem로 축소 */
       padding-left: 1.5rem;
     }
@@ -291,25 +291,25 @@ const { title, description = "Astro description"  } = Astro.props; //
         margin: 1rem auto;
       }
 
-      .wiki-body {
+      .wiki-content {
         font-size: 1rem;
       }
 
-      .wiki-body h1 {
+      .wiki-content h1 {
         font-size: 1.5rem;
         margin-top: 2rem;
       }
 
-      .wiki-body h2 {
+      .wiki-content h2 {
         font-size: 1.25rem;
         margin-top: 2rem;
       }
 
-      .wiki-body img {
+      .wiki-content img {
         margin: 1.5rem auto;
       }
 
-      .wiki-body table {
+      .wiki-content table {
         font-size: 0.8rem;
         overflow-x: auto;
         display: block;
