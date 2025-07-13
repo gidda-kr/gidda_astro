@@ -93,12 +93,11 @@ const firstImageComponent = wiki.content?.find(
 
 if (firstImageComponent) {
   // 찾은 이미지 컴포넌트의 URL을 사용합니다.
-  // Strapi에서 주는 URL이 이미 절대 경로일 수도 있고, 상대 경로일 수도 있으니 상황에 맞게 처리
-  // 만약 Strapi가 상대 경로를 준다면, 아래와 같이 Astro.url.origin을 붙여야 합니다.
-  // ogImage = new URL(firstImageComponent.image.url, Astro.url.origin).href;
-  // 그렇지 않고 이미 완전한 URL (http/https로 시작)이라면 그냥 할당합니다.
   ogImage = firstImageComponent.image.url;
 }
+
+// ✨ 여기 로그를 추가해서 ogImage에 최종적으로 뭐가 들어있는지 확인
+console.log('Final ogImage value:', ogImage);
 // --- ✅ Open Graph 이미지 로직 끝 ---
 
 const globalFootnotes = new Map<string, { number: number; content: string; refs: string[] }>();
