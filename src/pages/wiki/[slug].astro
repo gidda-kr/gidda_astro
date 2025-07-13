@@ -84,7 +84,7 @@ if (firstContentItem && firstContentItem.content) {
 // --- ✅ meta description 생성 로직 끝 ---
 
 // --- ✅ Open Graph 이미지 로직 시작 ---
-let ogImage = '/default-og-image.png'; // 기본 폴백 이미지 (필요에 따라 경로 변경)
+let ogImage = new URL("/default-og-image.png", Astro.url.origin).href; // 기본 폴백 이미지 (절대 경로로 시작)
 
 // wiki.content에서 common.image 컴포넌트를 찾습니다.
 const firstImageComponent = wiki.content?.find(
@@ -93,6 +93,10 @@ const firstImageComponent = wiki.content?.find(
 
 if (firstImageComponent) {
   // 찾은 이미지 컴포넌트의 URL을 사용합니다.
+  // Strapi에서 주는 URL이 이미 절대 경로일 수도 있고, 상대 경로일 수도 있으니 상황에 맞게 처리
+  // 만약 Strapi가 상대 경로를 준다면, 아래와 같이 Astro.url.origin을 붙여야 합니다.
+  // ogImage = new URL(firstImageComponent.image.url, Astro.url.origin).href;
+  // 그렇지 않고 이미 완전한 URL (http/https로 시작)이라면 그냥 할당합니다.
   ogImage = firstImageComponent.image.url;
 }
 // --- ✅ Open Graph 이미지 로직 끝 ---
@@ -288,7 +292,13 @@ const lastUpdated = new Date(wiki.updatedAt).toLocaleDateString('ko-KR', {
 });
 ---
 
-<WikiPageLayout title={wiki.title} description={pageDescription}>
+<WikiPageLayout
+    title={wiki.title}
+    description={pageDescription}
+    image={ogImage} // ✨ 이 줄을 추가합니다.
+    url={Astro.url.href} // ✨ 이 줄을 추가합니다. (og:url 메타 태그를 위해)
+    type="article" // ✨ 이 줄을 추가합니다. (컨텐츠 타입 명시를 위해)
+>
   <article class="wiki-content">
     <h1>{wiki.title}</h1>
     <div class="wiki-meta">
