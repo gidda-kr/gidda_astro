@@ -6,22 +6,30 @@ import BaseLayout from './BaseLayout.astro';
 export interface Props {
   title: string;
   description?: string;
-  // ✅ ogImage prop을 추가합니다.
-  ogImage?: string; // ogImage라는 이름으로 받는 것이 더 명확합니다.
+  // ✅ image, url, type prop을 BaseLayout과 동일하게 정의합니다.
+  image?: string; // slug.astro에서 넘겨주는 이름과 일치시킵니다.
+  url?: string;   // url prop도 추가
+  type?: string;  // type prop도 추가
 }
 
-// ✅ ogImage prop을 받아옵니다.
-const { title, description = "Astro description", ogImage } = Astro.props;
+// ✅ Astro.props에서 image, url, type을 직접 받습니다.
+const {
+  title,
+  description = "Astro description",
+  image, // ogImage 대신 image로 받음
+  url,
+  type = "website" // 기본값 설정 (BaseLayout의 기본값과 동일)
+} = Astro.props;
 
-// BaseLayout으로 전달할 때 image prop으로 매핑합니다.
-// WikiPageLayout은 "article" 타입이므로, type도 전달합니다.
+// 이제 BaseLayout으로 모든 prop을 올바르게 전달합니다.
 ---
 
 <BaseLayout
     title={title}
-    description={description || `${title} - 긷다 위키`}
-    image={ogImage || '/default-og-image.png'} // ✅ ogImage를 BaseLayout의 image prop으로 전달
-    type="article" // 위키 페이지는 일반적으로 article 타입입니다.
+    description={description}
+    image={image || new URL("/default-og-image.png", Astro.url.origin).href} // BaseLayout의 기본값 로직을 여기에 가져와도 됩니다.
+url={url}
+type={type}
 >
   <div class="wiki-content-container">
     <main class="wiki-body">
