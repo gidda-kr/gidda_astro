@@ -20,7 +20,7 @@ const { title, description = "Astro description", ogImage } = Astro.props;
 <BaseLayout
     title={title}
     description={description || `${title} - 긷다 위키`}
-    image={ogImage || '/default-og-image.jpg'} // ✅ ogImage를 BaseLayout의 image prop으로 전달
+    image={ogImage || '/default-og-image.png'} // ✅ ogImage를 BaseLayout의 image prop으로 전달
     type="article" // 위키 페이지는 일반적으로 article 타입입니다.
 >
   <div class="wiki-content-container">
