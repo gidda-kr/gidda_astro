@@ -10,12 +10,6 @@
         text-anchor: middle; /* 텍스트 중앙 정렬 */
         dominant-baseline: central; /* 세로 중앙 정렬 */
         }
-        /* 다크 모드 지원 */
-        @media (prefers-color-scheme: dark) {
-        .favicon-text {
-        fill: #FFF; /* 다크 모드에서는 흰색으로 */
-        }
-        }
     </style>
 
     <!-- '긷다' 텍스트를 파비콘 중앙에 배치 -->
