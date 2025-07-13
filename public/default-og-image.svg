@@ -1,0 +1,21 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <style>
+        .background {
+        fill: #f4f0e5; /* 웹사이트 main 배경색과 유사한 밝은 색상 */
+        }
+        .main-text {
+        font-family: 'Pretendard', sans-serif;
+        font-weight: 700; /* ExtraBold */
+        font-size: 80px; /* 큰 글자 크기 */
+        fill: #355E3B; /* 웹사이트 푸터 및 로고의 짙은 녹색 */
+        text-anchor: middle; /* 텍스트 중앙 정렬 */
+        dominant-baseline: central; /* 세로 중앙 정렬 */
+        }
+    </style>
+
+    <!-- 배경 -->
+    <rect x="0" y="0" width="1200" height="630" class="background"/>
+
+    <!-- 메인 텍스트 -->
+    <text x="600" y="315" class="main-text">에코 라이브러리 - 긷다</text>
+</svg>
