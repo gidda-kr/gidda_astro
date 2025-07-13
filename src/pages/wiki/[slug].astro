@@ -83,6 +83,20 @@ if (firstContentItem && firstContentItem.content) {
 }
 // --- ✅ meta description 생성 로직 끝 ---
 
+// --- ✅ Open Graph 이미지 로직 시작 ---
+let ogImage = '/default-og-image.jpg'; // 기본 폴백 이미지 (필요에 따라 경로 변경)
+
+// wiki.content에서 common.image 컴포넌트를 찾습니다.
+const firstImageComponent = wiki.content?.find(
+    (item) => item.__component === 'common.image' && item.image && item.image.url
+);
+
+if (firstImageComponent) {
+  // 찾은 이미지 컴포넌트의 URL을 사용합니다.
+  ogImage = firstImageComponent.image.url;
+}
+// --- ✅ Open Graph 이미지 로직 끝 ---
+
 const globalFootnotes = new Map<string, { number: number; content: string; refs: string[] }>();
 let footnoteCounter = 1;
 const footnoteRefCounters = new Map<string, number>();
