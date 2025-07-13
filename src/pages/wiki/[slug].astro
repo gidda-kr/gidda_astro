@@ -154,11 +154,27 @@ function collectFootnoteDefinitions(contentArray) {
   });
 }
 
-// --- 2단계: 각주 참조 변환 및 콘텐츠 렌더링 ---
+// src/pages/wiki/[slug].astro
+
+// ... (기존 import 및 getStaticPaths 함수 등 생략) ...
+
+// ✅ 핵심 수정: 정확한 prop 이름 사용
+const { wiki, allWikiSlugs } = Astro.props;
+const allSlugsSet = new Set(allWikiSlugs);
+
+// ... (기존 meta description 생성 로직 및 MarkdownIt 설정 생략) ...
+
+// --- 1단계: 각주 정의 수집 함수 (변경 없음) ---
+function collectFootnoteDefinitions(contentArray) {
+  // ... (기존 코드 유지) ...
+}
+
+// --- 2단계: 각주 참조 변환 및 콘텐츠 렌더링 함수 수정 ---
 function processContentAfterFootnotesCollected(contentArray) {
   if (!contentArray || !Array.isArray(contentArray)) return [];
 
   const processFootnoteRefsInText = (text: string) => {
+    // ... (기존 각주 참조 처리 로직 유지) ...
     return text.replace(/\[(\^[^\]]+)\]/g, (match, ref) => {
       const footnote = globalFootnotes.get(ref);
       if (footnote) {
@@ -179,10 +195,8 @@ function processContentAfterFootnotesCollected(contentArray) {
   return contentArray.map(item => {
     if (item.__component === 'common.content' && item.content) {
       let currentContent = item.content;
-
       currentContent = currentContent.replace(/^\[(\^[^\]]+)\]:\s*(.+)$/gm, '');
       currentContent = processFootnoteRefsInText(currentContent);
-
       const htmlContent = mdForContent.render(currentContent);
       return { ...item, content: htmlContent };
 
@@ -192,10 +206,8 @@ function processContentAfterFootnotesCollected(contentArray) {
           let listItemText = listItem.ListText;
           listItemText = listItemText.replace(/^\[(\^[^\]]+)\]:\s*(.+)$/gm, '');
           listItemText = processFootnoteRefsInText(listItemText);
-
           const htmlListItemText = mdForContent.render(listItemText);
           const finalHtml = htmlListItemText.replace(/^<p>(.*)<\/p>\s*$/s, '$1').trim();
-
           return {
             ...listItem,
             ListText: finalHtml
@@ -204,21 +216,39 @@ function processContentAfterFootnotesCollected(contentArray) {
         return listItem;
       });
       return { ...item, items: processedItems };
-    }
 
-    else if (item.__component === 'common.callout' && item.content) {
-      // Callout의 content와 source를 마크다운으로 렌더링합니다.
+    } else if (item.__component === 'common.callout' && item.content) {
       const processedContent = mdForContent.render(processFootnoteRefsInText(item.content));
       let processedSource = item.source || '';
-
       if (item.source) {
-        // source도 마크다운 렌더링을 적용합니다.
         const renderedSource = mdForContent.render(item.source);
-        // render() 함수가 자동으로 생성하는 <p> 태그를 제거하여 깔끔하게 표시합니다.
         processedSource = renderedSource.replace(/^<p>(.*)<\/p>\s*$/s, '$1').trim();
       }
-
       return { ...item, content: processedContent, source: processedSource };
+
+      // ✅ 이곳에 common.image 컴포넌트 처리 로직 추가 (각주 처리 제외)
+    } else if (item.__component === 'common.image') {
+      let processedCaption = item.caption || '';
+      let processedCopyright = item.copyright || '';
+
+      // caption 필드가 있다면 마크다운 렌더링
+      if (item.caption) {
+        const renderedCaption = mdForContent.render(item.caption); // 각주 처리 함수 제외
+        processedCaption = renderedCaption.replace(/^<p>(.*)<\/p>\s*$/s, '$1').trim();
+      }
+
+      // copyright 필드가 있다면 마크다운 렌더링
+      if (item.copyright) {
+        const renderedCopyright = mdForContent.render(item.copyright); // 각주 처리 함수 제외
+        processedCopyright = renderedCopyright.replace(/^<p>(.*)<\/p>\s*$/s, '$1').trim();
+      }
+
+      return {
+        ...item,
+        // Image.astro가 받는 prop 이름에 맞춰서 전달 (displayCaption, copyright)
+        displayCaption: processedCaption,
+        copyright: processedCopyright,
+      };
     }
 
     return item;
