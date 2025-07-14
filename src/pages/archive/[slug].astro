@@ -1,0 +1,301 @@
+---
+import ArchiveLayout from '~/layouts/archiveLayout.astro';
+
+export async function getStaticPaths() {
+    const STRAPI_URL = 'https://strapi-app-63132904920.asia-northeast3.run.app';
+
+    try {
+        const response = await fetch(`${STRAPI_URL}/api/resources?populate[actors][fields][0]=name&populate[attachments][fields][0]=url&populate[attachments][fields][1]=name`);
+        if (!response.ok) {
+            console.error(`API 호출 실패: ${response.status}`);
+            return [];
+        }
+        const data = await response.json();
+        const resources = data.data || [];
+
+        console.log('🔍 API에서 가져온 리소스 개수:', resources.length);
+        console.log('🔍 리소스 documentId 목록:', resources.map(r => r.documentId));
+
+        if (resources.length === 0) {
+            console.warn('⚠️ API에서 리소스를 가져오지 못했습니다.');
+            return [];
+        }
+
+        const staticPaths = resources.map(resource => ({
+            params: { slug: String(resource.documentId) },
+            props: { resource }
+        }));
+
+        console.log('🔍 최종 생성된 경로 개수:', staticPaths.length);
+        console.log('🔍 생성된 모든 slug:', staticPaths.map(r => r.params.slug));
+
+        return staticPaths;
+
+    } catch (error) {
+        console.error("getStaticPaths 함수 실행 중 예외 발생:", error);
+        return [];
+    }
+}
+
+const STRAPI_URL = 'https://strapi-app-63132904920.asia-northeast3.run.app';
+const { resource } = Astro.props;
+
+if (!resource) {
+    return Astro.redirect('/404');
+}
+
+const firstParagraph = resource.summary_content?.[0]?.children?.[0]?.text;
+const description = firstParagraph ? firstParagraph.substring(0, 150) + '...' : resource.title;
+
+const attachmentUrl = resource.attachments?.[0]?.url;
+
+const resourceTypeMap = {
+    'document': '문서',
+    'statement': '성명서',
+    'press-release': '보도자료',
+    'report': '보고서',
+    'photo': '사진',
+    'video': '영상',
+    'etc': '기타',
+};
+
+const translatedResourceType = resourceTypeMap[resource.resource_type] || resource.resource_type;
+
+function convertRichTextToHTML(richTextArray) {
+    if (!richTextArray || !Array.isArray(richTextArray)) {
+        return '';
+    }
+
+    return richTextArray.map(block => {
+        if (block.type === 'paragraph' && block.children) {
+            const content = block.children.map(child => {
+                if (child.text) {
+                    return child.text;
+                }
+                return '';
+            }).join('');
+
+            if (content.trim() === '') {
+                return '<br>';
+            }
+
+            return `<p>${content}</p>`;
+        }
+        return '';
+    }).join('');
+}
+
+const fullContent = convertRichTextToHTML(resource.summary_content);
+
+let finalUrl = null;
+let buttonText = '링크 없음';
+
+if (resource.copyright_status !== 'KOGL' && resource.copyright_status !== 'copyrighted') {
+    if (resource.source_url) {
+        finalUrl = resource.source_url;
+        buttonText = '자료 다운로드';
+    } else if (attachmentUrl) {
+        finalUrl = attachmentUrl;
+        buttonText = '자료 다운로드';
+    }
+} else {
+    let isSourceBroken = false;
+    const url = resource.source_url;
+    if (url) {
+        try {
+            const urlResponse = await fetch(url, { method: 'HEAD', timeout: 5000 });
+            isSourceBroken = !urlResponse.ok;
+        } catch (e) {
+            isSourceBroken = true;
+        }
+    }
+
+    if (isSourceBroken && attachmentUrl) {
+        finalUrl = attachmentUrl;
+        buttonText = '자료 다운로드 (백업)';
+    } else if (resource.source_url) {
+        finalUrl = resource.source_url;
+        buttonText = '원문 페이지로 이동';
+    }
+}
+---
+
+<ArchiveLayout title={resource.title} description={description}>
+    <div class="archive-main-content">
+        <header class="resource-header">
+            <h1 class="resource-title">{resource.title}</h1>
+            <p class="resource-date">원본작성일: {resource.date}</p>
+        </header>
+
+        <aside class="metadata-sidebar">
+            <div class="metadata-item">
+                <strong>자료 유형</strong>
+                <span>{translatedResourceType}</span>
+            </div>
+            {resource.actors?.length > 0 && (
+                    <div class="metadata-item">
+                        <strong>작성자/제공기관</strong>
+                        <span>
+                        {resource.actors.map(actor => actor.name).join(', ')}
+                    </span>
+                    </div>
+            )}
+            <div class="metadata-item">
+                <strong>저작권 상태</strong>
+                <span>{resource.copyright_status}</span>
+            </div>
+            {resource.copyright_specific && (
+                    <div class="metadata-item">
+                        <strong>세부 라이선스</strong>
+                        <span>{resource.copyright_specific}</span>
+                    </div>
+            )}
+
+            <div class="action-buttons">
+                {finalUrl ? (
+                        <a href={finalUrl} class="button-primary" target="_blank" rel="noopener noreferrer">{buttonText}</a>
+                ) : (
+                        <span class="no-link-message">링크가 존재하지 않습니다.</span>
+                )}
+            </div>
+        </aside>
+
+        <main class="resource-body">
+            <div class="content-text-block">
+                <div set:html={fullContent}></div>
+            </div>
+        </main>
+    </div>
+</ArchiveLayout>
+
+<style>
+    .archive-main-content {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 1.5rem;
+        max-width: 800px; /* max-width를 1000px로 변경 */
+        margin: 0 auto;
+        padding: 0 1rem;
+        /* 모바일 우선: 사이드바가 본문 위에 위치하도록 설정 */
+        grid-template-areas:
+                "header"
+                "sidebar"
+                "body";
+    }
+
+    .resource-header {
+        grid-area: header; /* 그리드 영역 지정 */
+        margin-top: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #f0f0f0;
+    }
+
+    .resource-body {
+        grid-area: body; /* 그리드 영역 지정 */
+    }
+
+    .metadata-sidebar {
+        grid-area: sidebar; /* 그리드 영역 지정 */
+    }
+
+    .resource-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0 0 0.5rem 0;
+        line-height: 1.3;
+    }
+
+    .resource-date {
+        font-size: 0.9rem;
+        color: #666;
+        margin: 0;
+    }
+
+    .metadata-item {
+        margin-bottom: 1rem;
+    }
+
+    .metadata-item strong {
+        display: block;
+        font-size: 0.9rem;
+        color: #444;
+        margin-bottom: 0.25rem;
+    }
+
+    .metadata-item span {
+        font-size: 1rem;
+        font-weight: 600;
+        color: #1a1a1a;
+    }
+
+    .action-buttons {
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #f0f0f0;
+    }
+
+    .button-primary {
+        display: block;
+        padding: 0.75rem 1.5rem;
+        background-color: #355E3B;
+        color: #fff;
+        text-decoration: none;
+        border-radius: 5px;
+        font-weight: 600;
+        text-align: center;
+        width: 100%;
+        box-sizing: border-box;
+        transition: background-color 0.2s ease;
+    }
+
+    .button-primary:hover {
+        background-color: #2a4a2f;
+    }
+
+    .content-text-block {
+        line-height: 1.7;
+    }
+
+    .content-text-block p {
+        margin-bottom: 1rem;
+    }
+
+    .no-link-message {
+        color: #888;
+        font-style: italic;
+        font-size: 0.9rem;
+        display: block;
+        text-align: center;
+        padding: 0.75rem;
+    }
+
+    /* 데스크톱: 2컬럼 레이아웃 */
+    @media (min-width: 768px) {
+        .archive-main-content {
+            grid-template-columns: 2fr 1fr;
+            grid-template-areas:
+                "header header"
+                "body sidebar";
+            gap: 2rem;
+        }
+
+        .metadata-sidebar {
+            border-left: 1px solid #e0e0e0;
+            padding-left: 2rem;
+            position: sticky;
+            top: 2rem;
+            height: fit-content;
+        }
+    }
+
+    /* 모바일 반응형 */
+    @media (max-width: 480px) {
+        .archive-main-content {
+            padding: 0 1rem;
+        }
+
+        .resource-title {
+            font-size: 1.5rem;
+        }
+    }
+</style>

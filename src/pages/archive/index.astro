@@ -1,0 +1,225 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+// Strapi API 엔드포인트 설정
+const STRAPI_URL = 'https://strapi-app-63132904920.asia-northeast3.run.app';
+const API_PATH = '/api/resources';
+
+// 최적화된 쿼리: 필요한 필드만 + actors 이름
+const QUERY_PARAMS = '?sort[0]=publishedAt:desc&fields[0]=title&fields[1]=documentId&fields[2]=resource_type&fields[3]=copyright_status&fields[4]=date&populate[actors][fields]=name';
+
+let resources = [];
+try {
+    const response = await fetch(`${STRAPI_URL}${API_PATH}${QUERY_PARAMS}`);
+    if (!response.ok) {
+        throw new Error(`API 호출 실패: ${response.status}`);
+    }
+    const data = await response.json();
+
+    if (data.data) {
+        resources = data.data;
+    }
+} catch (error) {
+    console.error("Strapi API에서 아카이브 리소스를 가져오는 데 실패했습니다:", error);
+}
+
+// resource_type을 한국어로 변환하는 딕셔너리
+const resourceTypeMap = {
+    'document': '문서',
+    'statement': '성명서',
+    'press-release': '보도자료',
+    'report': '보고서',
+    'photo': '사진',
+    'video': '영상',
+    'etc': '기타',
+};
+---
+
+<BaseLayout title="아카이브 목록">
+    <article class="archive-list-container">
+        <header class="page-header">
+            <h1>아카이브</h1>
+            <p class="resource-count">총 {resources.length}개의 자료</p>
+        </header>
+
+        {resources.length === 0 ? (
+                <div class="empty-state">
+                    <p>아직 등록된 자료가 없습니다.</p>
+                    <p>Strapi에서 첫 번째 자료를 등록해 보세요!</p>
+                </div>
+        ) : (
+                <div class="archive-grid">
+                    {resources.map((resource) => (
+                            <a href={`/archive/${resource.documentId}`} class="card">
+                                <div class="card-content">
+                                    <div class="resource-meta">
+                                        <span class="resource-type">{resourceTypeMap[resource.resource_type] || resource.resource_type}</span>
+                                        <span class="separator">•</span>
+                                        <span class="copyright-status">{resource.copyright_status}</span>
+                                    </div>
+                                    <h2 class="card-title">{resource.title}</h2>
+
+                                    <div class="card-footer">
+                                        {resource.actors?.length > 0 && (
+                                                <span class="author">
+                                                {resource.actors.map(actor => actor.name).join(', ')}
+                                            </span>
+                                        )}
+                                        <span class="resource-date">
+                                            {new Date(resource.date).toLocaleDateString('ko-KR', {
+                                                year: 'numeric',
+                                                month: 'long',
+                                                day: 'numeric'
+                                            })}
+                                        </span>
+                                    </div>
+                                </div>
+                            </a>
+                    ))}
+                </div>
+        )}
+    </article>
+</BaseLayout>
+
+<style>
+    .archive-list-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 1rem 2rem;
+        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        padding-bottom: 2rem;
+        border-bottom: 1px solid #e8e8e8;
+    }
+
+    .page-header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin-bottom: 1rem;
+        letter-spacing: -0.02em;
+    }
+
+    .resource-count {
+        font-size: 1.1rem;
+        color: #666;
+        margin: 0;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #666;
+        font-size: 1.1rem;
+        line-height: 1.6;
+    }
+
+    /* 그리드 레이아웃 */
+    .archive-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+
+    .card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        transition: all 0.2s ease;
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        min-height: 180px; /* 높이를 조금 늘림 */
+    }
+
+    .card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-content {
+        padding: 1.5rem;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .resource-meta {
+        font-size: 0.875rem;
+        color: #888;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .resource-meta .separator {
+        color: #ccc;
+    }
+
+    .resource-type {
+        font-weight: 600;
+        color: #355E3B;
+    }
+
+    .copyright-status {
+        color: #666;
+    }
+
+    .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        line-height: 1.4;
+        color: #1a1a1a;
+        margin: 0;
+        letter-spacing: -0.01em;
+        flex-grow: 1; /* 제목이 가능한 공간을 차지 */
+    }
+
+    .card-footer {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin-top: auto; /* footer를 카드 하단에 고정 */
+    }
+
+    .author {
+        font-size: 0.9rem;
+        color: #666;
+        font-weight: 500;
+    }
+
+    .resource-date {
+        font-size: 0.8rem;
+        color: #999;
+    }
+
+    /* 반응형 디자인 */
+    @media (max-width: 768px) {
+        .archive-list-container {
+            padding: 1rem;
+        }
+
+        .archive-grid {
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .archive-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
