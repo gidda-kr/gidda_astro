@@ -5,8 +5,7 @@ export async function getStaticPaths() {
     const STRAPI_URL = 'https://strapi-app-63132904920.asia-northeast3.run.app';
 
     try {
-        // summary_content와 actors, attachments를 함께 populate
-        const response = await fetch(`${STRAPI_URL}/api/resources?populate[actors][fields][0]=name&populate[attachments][fields][0]=url&populate[attachments][fields][1]=name&populate[summary_content]`);
+        const response = await fetch(`${STRAPI_URL}/api/resources?populate[actors][fields][0]=name&populate[attachments][fields][0]=url&populate[attachments][fields][1]=name`);
         if (!response.ok) {
             console.error(`API 호출 실패: ${response.status}`);
             return [];
@@ -62,68 +61,54 @@ const resourceTypeMap = {
 
 const translatedResourceType = resourceTypeMap[resource.resource_type] || resource.resource_type;
 
-// Rich Text를 HTML로 변환하는 함수 (재작성)
+// Rich Text를 HTML로 변환하는 함수 (링크 처리 개선)
 function convertRichTextToHTML(richTextArray) {
     if (!richTextArray || !Array.isArray(richTextArray)) {
         return '';
     }
 
-    let htmlContent = '';
-    richTextArray.forEach(block => {
-        let blockHtml = '';
-
-        // 자식 노드 처리
-        const processChildren = (children) => {
-            let childrenHtml = '';
-            children.forEach(child => {
-                let text = child.text || '';
-
-                // 서식 적용
-                if (child.bold) text = `<strong>${text}</strong>`;
-                if (child.italic) text = `<em>${text}</em>`;
-                if (child.underline) text = `<u>${text}</u>`;
-                if (child.strikethrough) text = `<s>${text}</s>`;
-
-                // 링크 처리
+    return richTextArray.map(block => {
+        if (block.type === 'paragraph' && block.children) {
+            const content = block.children.map(child => {
+                // 링크인 경우
                 if (child.type === 'link') {
-                    const linkText = child.children.map(c => c.text).join('');
-                    childrenHtml += `<a href="${child.url}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
-                } else if (child.type === 'text') {
-                    childrenHtml += text;
+                    const linkText = child.children ?
+                        child.children.map(linkChild => linkChild.text || '').join('') :
+                        (child.text || child.url || '링크');
+                    return `<a href="${child.url}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
                 }
-            });
-            return childrenHtml;
-        };
+                // 일반 텍스트인 경우
+                else if (child.text) {
+                    let text = child.text;
 
-        // 블록 타입에 따라 HTML 태그 생성
-        if (block.type === 'paragraph') {
-            blockHtml = processChildren(block.children);
-            if (blockHtml.trim() === '') {
-                htmlContent += '<br>';
-            } else {
-                htmlContent += `<p>${blockHtml}</p>`;
+                    // 서식 적용
+                    if (child.bold) text = `<strong>${text}</strong>`;
+                    if (child.italic) text = `<em>${text}</em>`;
+                    if (child.underline) text = `<u>${text}</u>`;
+                    if (child.strikethrough) text = `<s>${text}</s>`;
+
+                    return text;
+                }
+                return '';
+            }).join('');
+
+            if (content.trim() === '') {
+                return '<br>';
             }
-        } else if (block.type === 'list') {
-            const listItems = block.children.map(item => `<li>${processChildren(item.children)}</li>`).join('');
-            if (block.format === 'ordered') {
-                htmlContent += `<ol>${listItems}</ol>`;
-            } else {
-                htmlContent += `<ul>${listItems}</ul>`;
-            }
-        } else if (block.type === 'heading') {
-            const headingContent = processChildren(block.children);
-            htmlContent += `<h${block.level}>${headingContent}</h${block.level}>`;
+
+            return `<p>${content}</p>`;
         }
-    });
-
-    return htmlContent;
+        return '';
+    }).join('');
 }
 
 const fullContent = convertRichTextToHTML(resource.summary_content);
 
+// 버튼 로직
 let finalUrl = null;
 let buttonText = '링크 없음';
 
+// 원문 URL의 유효성을 먼저 검사합니다.
 let isSourceBroken = false;
 if (resource.source_url) {
     try {
@@ -134,17 +119,21 @@ if (resource.source_url) {
     }
 }
 
+// 1. 원문 URL이 있고 유효한 경우, 원문 페이지로 이동
 if (resource.source_url && !isSourceBroken) {
     finalUrl = resource.source_url;
     buttonText = '원문 페이지로 이동';
 }
+// 2. 원문 URL이 없거나 깨졌고, 첨부파일이 있는 경우, 자료 다운로드
 else if (attachmentUrl) {
     finalUrl = attachmentUrl;
     buttonText = '자료 다운로드';
+    // 저작권 상태가 KOGL 또는 copyrighted이면서 백업 링크인 경우
     if (resource.copyright_status === 'KOGL' || resource.copyright_status === 'copyrighted') {
         buttonText += ' (백업)';
     }
 }
+// 3. 둘 다 없는 경우
 else {
     finalUrl = null;
     buttonText = '링크 없음';
@@ -204,29 +193,21 @@ else {
         display: grid;
         grid-template-columns: 1fr;
         gap: 1.5rem;
-        max-width: 800px; /* max-width를 1000px로 변경 */
+        max-width: 800px;
         margin: 0 auto;
         padding: 0 1rem;
-        /* 모바일 우선: 사이드바가 본문 위에 위치하도록 설정 */
+        /* 모바일: 헤더 → 사이드바 → 본문 순서 */
         grid-template-areas:
-                "header"
-                "sidebar"
-                "body";
+            "header"
+            "sidebar"
+            "body";
     }
 
     .resource-header {
-        grid-area: header; /* 그리드 영역 지정 */
+        grid-area: header;
         margin-top: 2rem;
         padding-bottom: 1rem;
         border-bottom: 2px solid #f0f0f0;
-    }
-
-    .resource-body {
-        grid-area: body; /* 그리드 영역 지정 */
-    }
-
-    .metadata-sidebar {
-        grid-area: sidebar; /* 그리드 영역 지정 */
     }
 
     .resource-title {
@@ -240,6 +221,14 @@ else {
         font-size: 0.9rem;
         color: #666;
         margin: 0;
+    }
+
+    .resource-body {
+        grid-area: body;
+    }
+
+    .metadata-sidebar {
+        grid-area: sidebar;
     }
 
     .metadata-item {
@@ -291,6 +280,19 @@ else {
         margin-bottom: 1rem;
     }
 
+    /* 본문 내 링크 스타일링 */
+    .content-text-block a {
+        color: #355E3B;
+        text-decoration: underline;
+        font-weight: 500;
+        transition: color 0.2s ease;
+    }
+
+    .content-text-block a:hover {
+        color: #2a4a2f;
+        text-decoration-thickness: 2px;
+    }
+
     .no-link-message {
         color: #888;
         font-style: italic;
@@ -303,30 +305,47 @@ else {
     /* 데스크톱: 2컬럼 레이아웃 */
     @media (min-width: 768px) {
         .archive-main-content {
-            grid-template-columns: 2fr 1fr;
+            grid-template-columns: 2fr 1fr !important;
             grid-template-areas:
                 "header header"
-                "body sidebar";
+                "body sidebar" !important;
             gap: 2rem;
+            max-width: 800px;
         }
 
         .metadata-sidebar {
-            border-left: 1px solid #e0e0e0;
-            padding-left: 2rem;
-            position: sticky;
+            border-left: 1px solid #e0e0e0 !important;
+            padding-left: 2rem !important;
+            position: sticky !important;
             top: 2rem;
             height: fit-content;
+            border-bottom: none !important;
+            margin-bottom: 0 !important;
+            padding-bottom: 0 !important;
         }
     }
 
-    /* 모바일 반응형 */
-    @media (max-width: 480px) {
+    /* 모바일 반응형 - 명시적으로 순서 재정의 */
+    @media (max-width: 767px) {
         .archive-main-content {
+            grid-template-areas:
+                "header"
+                "sidebar"
+                "body" !important;
             padding: 0 1rem;
         }
 
         .resource-title {
             font-size: 1.5rem;
+        }
+
+        .metadata-sidebar {
+            border-left: none !important;
+            padding-left: 0 !important;
+            position: static !important;
+            border-bottom: 1px solid #e0e0e0;
+            padding-bottom: 1.5rem;
+            margin-bottom: 1rem;
         }
     }
 </style>
