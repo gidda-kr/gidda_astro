@@ -5,6 +5,7 @@ export async function getStaticPaths() {
     const STRAPI_URL = 'https://strapi-app-63132904920.asia-northeast3.run.app';
 
     try {
+        // summary_content와 actors, attachments를 함께 populate
         const response = await fetch(`${STRAPI_URL}/api/resources?populate[actors][fields][0]=name&populate[attachments][fields][0]=url&populate[attachments][fields][1]=name&populate[summary_content]`);
         if (!response.ok) {
             console.error(`API 호출 실패: ${response.status}`);
@@ -61,65 +62,64 @@ const resourceTypeMap = {
 
 const translatedResourceType = resourceTypeMap[resource.resource_type] || resource.resource_type;
 
-// Rich Text를 HTML로 변환하는 함수 (개선)
+// Rich Text를 HTML로 변환하는 함수 (재작성)
 function convertRichTextToHTML(richTextArray) {
     if (!richTextArray || !Array.isArray(richTextArray)) {
         return '';
     }
 
-    return richTextArray.map(block => {
-        let blockContent = '';
-        if (block.children) {
-            const childrenHtml = block.children.map(child => {
+    let htmlContent = '';
+    richTextArray.forEach(block => {
+        let blockHtml = '';
+
+        // 자식 노드 처리
+        const processChildren = (children) => {
+            let childrenHtml = '';
+            children.forEach(child => {
                 let text = child.text || '';
-                // 굵게, 기울임꼴 등 서식 적용
+
+                // 서식 적용
                 if (child.bold) text = `<strong>${text}</strong>`;
                 if (child.italic) text = `<em>${text}</em>`;
                 if (child.underline) text = `<u>${text}</u>`;
                 if (child.strikethrough) text = `<s>${text}</s>`;
 
-                // 링크 서식 적용
+                // 링크 처리
                 if (child.type === 'link') {
-                    // target 속성 추가
-                    return `<a href="${child.url}" target="_blank" rel="noopener noreferrer">${child.children[0].text}</a>`;
+                    const linkText = child.children.map(c => c.text).join('');
+                    childrenHtml += `<a href="${child.url}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
+                } else if (child.type === 'text') {
+                    childrenHtml += text;
                 }
-
-                return text;
-            }).join('');
-            blockContent = childrenHtml;
-        }
+            });
+            return childrenHtml;
+        };
 
         // 블록 타입에 따라 HTML 태그 생성
         if (block.type === 'paragraph') {
-            if (blockContent.trim() === '') {
-                return '<br>';
+            blockHtml = processChildren(block.children);
+            if (blockHtml.trim() === '') {
+                htmlContent += '<br>';
+            } else {
+                htmlContent += `<p>${blockHtml}</p>`;
             }
-            return `<p>${blockContent}</p>`;
-        }
-        if (block.type === 'list') {
+        } else if (block.type === 'list') {
+            const listItems = block.children.map(item => `<li>${processChildren(item.children)}</li>`).join('');
             if (block.format === 'ordered') {
-                const listItems = block.children.map(item => `<li>${convertRichTextToHTML(item.children)}</li>`).join('');
-                return `<ol>${listItems}</ol>`;
+                htmlContent += `<ol>${listItems}</ol>`;
+            } else {
+                htmlContent += `<ul>${listItems}</ul>`;
             }
-            const listItems = block.children.map(item => `<li>${convertRichTextToHTML(item.children)}</li>`).join('');
-            return `<ul>${listItems}</ul>`;
+        } else if (block.type === 'heading') {
+            const headingContent = processChildren(block.children);
+            htmlContent += `<h${block.level}>${headingContent}</h${block.level}>`;
         }
-        if (block.type === 'heading') {
-            return `<h${block.level}>${blockContent}</h${block.level}>`;
-        }
+    });
 
-        return blockContent;
-    }).join('');
+    return htmlContent;
 }
 
-// getStaticPaths에서 summary_content를 populate하지 않아 여기서 재호출
-// 이 방법은 비효율적이므로, 가능하면 getStaticPaths에서 한번에 가져오는 것을 권장합니다.
-// (getStaticPaths 쿼리에 populate[summary_content]를 추가하면 이 부분은 필요 없습니다.)
-const fullResourceResponse = await fetch(`${STRAPI_URL}/api/resources/${resource.id}?populate=summary_content`);
-const fullResourceData = await fullResourceResponse.json();
-const fullContentArray = fullResourceData.data.attributes.summary_content;
-
-const fullContent = convertRichTextToHTML(fullContentArray);
+const fullContent = convertRichTextToHTML(resource.summary_content);
 
 let finalUrl = null;
 let buttonText = '링크 없음';
@@ -150,6 +150,7 @@ else {
     buttonText = '링크 없음';
 }
 ---
+
 <ArchiveLayout title={resource.title} description={description}>
     <div class="archive-main-content">
         <header class="resource-header">
