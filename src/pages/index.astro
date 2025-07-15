@@ -1,49 +1,615 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { Image } from 'astro:assets';
+
+// Strapi API 엔드포인트
+const strapiUrl = 'https://strapi-app-63132904920.asia-northeast3.run.app';
+
+// 1. 웹진 기사 목록 (최신 2개)
+const webzineApiPath = '/api/webzine-articles';
+// pagination[limit]을 2로 변경
+const webzineQueryParams = '?populate[0]=featuredImage&populate[1]=author&sort=publishedat:desc&fields[0]=title&fields[1]=slug&fields[2]=publishedat&pagination[limit]=2';
+let webzineArticles = [];
+try {
+	const webzineResponse = await fetch(`${strapiUrl}${webzineApiPath}${webzineQueryParams}`);
+	const webzineJsonData = await webzineResponse.json();
+	if (webzineJsonData.data) {
+		webzineArticles = webzineJsonData.data.map(item => {
+			const articleData = item;
+			const featuredImage = articleData.featuredImage ? {
+				url: articleData.featuredImage.url,
+				alt: articleData.featuredImage.alternativeText || articleData.featuredImage.name || articleData.title || 'Featured Image'
+			} : null;
+			// author 객체에서 name을 직접 추출
+			const authorName = articleData.author?.name || '작성자 정보 없음';
+
+			return {
+				...articleData,
+				featuredImage: featuredImage,
+				authorName: authorName
+			};
+		});
+	}
+} catch (error) {
+	console.error('웹진 목록을 가져오는 데 실패했습니다:', error);
+}
+
+// 2. 위키 항목 목록 (최신 12개)
+const wikiApiPath = '/api/wikis';
+const wikiQueryParams = '?sort=publishedAt:desc&fields[0]=title&fields[1]=slug&pagination[limit]=12';
+let wikis = [];
+try {
+	const wikiResponse = await fetch(`${strapiUrl}${wikiApiPath}${wikiQueryParams}`);
+	const wikiJsonData = await wikiResponse.json();
+	if (wikiJsonData.data) {
+		wikis = wikiJsonData.data;
+	}
+} catch (error) {
+	console.error('위키 목록을 가져오는 데 실패했습니다:', error);
+}
+
+// 3. 아카이브 자료 목록 (최신 6개)
+const archiveApiPath = '/api/resources';
+const archiveQueryParams = '?sort=publishedAt:desc&fields[0]=title&fields[1]=documentId&fields[2]=resource_type&fields[3]=copyright_status&fields[4]=date&populate[actors][fields]=name&pagination[limit]=6';
+let resources = [];
+const resourceTypeMap = {
+	'document': '문서',
+	'statement': '성명서',
+	'press-release': '보도자료',
+	'report': '보고서',
+	'photo': '사진',
+	'video': '영상',
+	'etc': '기타',
+};
+try {
+	const archiveResponse = await fetch(`${strapiUrl}${archiveApiPath}${archiveQueryParams}`);
+	const archiveData = await archiveResponse.json();
+	if (archiveData.data) {
+		resources = archiveData.data;
+	}
+} catch (error) {
+	console.error("아카이브 리소스를 가져오는 데 실패했습니다:", error);
+}
 ---
 
 <BaseLayout title="환영합니다!">
-	<div class="welcome-page">
-		<div class="welcome-content">
-			<h1>환영합니다!</h1>
-			<p>이곳은 긷다의 지식 창고입니다.</p>
-			<p>
-				<a href="/wiki" class="nav-link">
-					→ 위키 둘러보기
-				</a>
-			</p>
-			<p>
-				<a href="/webzine" class="nav-link">
-					→ 웹진 둘러보기
-				</a>
-			</p>
-		</div>
+	<div class="main-content">
+		<section class="webzine-section">
+			<header class="section-header">
+				<h2>웹진</h2>
+				<a href="/webzine" class="view-more">더보기 →</a>
+			</header>
+			{webzineArticles.length > 0 ? (
+				<div class="webzine-grid">
+					<article class="featured-article">
+						<a href={`/webzine/${webzineArticles[0].slug}`} class="featured-link">
+							<div class="featured-image-container">
+								{webzineArticles[0].featuredImage ? (
+									<Image
+										src={webzineArticles[0].featuredImage.url}
+										alt={webzineArticles[0].featuredImage.alt}
+										width={1200}
+										height={630}
+										class="featured-image"
+									/>
+								) : (
+									<div class="featured-no-image">
+										<div class="placeholder-icon">
+											<svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+												<path d="M8 40V8H40V40H8ZM12 36H36V12H12V36ZM16 28H32L26 20L22 26L20 24L16 28Z" fill="currentColor"/>
+											</svg>
+										</div>
+									</div>
+								)}
+								<div class="featured-content-overlay">
+									<div class="featured-content">
+										<h3 class="featured-title">{webzineArticles[0].title}</h3>
+										<p class="article-meta">
+											<span class="author">{webzineArticles[0].authorName}</span>
+											<span class="separator">•</span>
+											<time class="featured-date">
+												{new Date(webzineArticles[0].publishedat).toLocaleDateString('ko-KR', {
+													year: 'numeric',
+													month: 'long',
+													day: 'numeric'
+												})}
+											</time>
+										</p>
+									</div>
+								</div>
+							</div>
+						</a>
+					</article>
+
+					<div class="sidebar-articles">
+						{webzineArticles.slice(1, 2).map((article) => (
+							<article class="sidebar-article">
+								<a href={`/webzine/${article.slug}`} class="sidebar-link">
+									<div class="sidebar-image-container">
+										{article.featuredImage ? (
+											<Image
+												src={article.featuredImage.url}
+												alt={article.featuredImage.alt}
+												width={400}
+												height={240}
+												class="sidebar-image"
+											/>
+										) : (
+											<div class="sidebar-no-image">
+												<div class="placeholder-icon">
+													<svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+														<path d="M8 40V8H40V40H8ZM12 36H36V12H12V36ZM16 28H32L26 20L22 26L20 24L16 28Z" fill="currentColor"/>
+													</svg>
+												</div>
+											</div>
+										)}
+										<div class="sidebar-content-overlay">
+											<div class="sidebar-content">
+												<h4 class="sidebar-title">{article.title}</h4>
+												<p class="article-meta">
+													<span class="author">{article.authorName}</span>
+													<span class="separator">•</span>
+													<time class="sidebar-date">
+														{new Date(article.publishedat).toLocaleDateString('ko-KR', {
+															year: 'numeric',
+															month: 'long',
+															day: 'numeric'
+														})}
+													</time>
+												</p>
+											</div>
+										</div>
+									</div>
+								</a>
+							</article>
+						))}
+					</div>
+				</div>
+			) : (
+				<div class="empty-state">
+					<p>아직 작성된 웹진 기사가 없습니다.</p>
+				</div>
+			)}
+		</section>
+	</div>
+
+	<div class="main-content">
+		<section class="wiki-list-section">
+			<header class="section-header">
+				<h2>최근 위키 항목</h2>
+				<a href="/wiki" class="view-more">더보기 →</a>
+			</header>
+			{wikis.length > 0 ? (
+				<ul class="wiki-list">
+					{wikis.map((wiki) => (
+						<li class="wiki-card">
+							<a href={`/wiki/${wiki.slug}`}>
+								<h3>{wiki.title}</h3>
+							</a>
+						</li>
+					))}
+				</ul>
+			) : (
+				<div class="empty-state">
+					<p>아직 작성된 위키 항목이 없습니다.</p>
+				</div>
+			)}
+		</section>
+
+		<section class="archive-list-section">
+			<header class="section-header">
+				<h2>최근 아카이브</h2>
+				<a href="/archive" class="view-more">더보기 →</a>
+			</header>
+			{resources.length > 0 ? (
+				<div class="archive-grid">
+					{resources.map((resource) => (
+						<a href={`/archive/${resource.documentId}`} class="archive-card">
+							<div class="card-content">
+								<div class="resource-meta">
+									<span class="resource-type">{resourceTypeMap[resource.resource_type] || resource.resource_type}</span>
+									<span class="separator">•</span>
+									<span class="copyright-status">{resource.copyright_status}</span>
+								</div>
+								<h3 class="card-title">{resource.title}</h3>
+							</div>
+						</a>
+					))}
+				</div>
+			) : (
+				<div class="empty-state">
+					<p>아직 등록된 자료가 없습니다.</p>
+				</div>
+			)}
+		</section>
 	</div>
 </BaseLayout>
 
 <style>
-	/* article 태그 대신 고유한 클래스 사용 */
-	.welcome-page {
-		width: 100%;
-		padding-top: 5rem;
-		text-align: center;
+	/* 기본 폰트 및 전역 스타일 */
+	* {
+		font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
 	}
 
-	.welcome-content {
-		max-width: 700px;
+	/* 모든 섹션의 헤딩과 내용 컨테이너 (800px) */
+	.main-content {
+		max-width: 800px;
 		margin: 0 auto;
-		padding: 2rem;
-		/* 다른 요소에 영향주지 않도록 완전히 격리 */
-		isolation: isolate;
+		padding: 0 2rem;
 	}
 
-	.nav-link {
-		font-size: 1.2rem;
-		font-weight: bold;
+	section {
+		margin-bottom: 4rem;
+	}
+
+	/* 섹션 헤더 스타일 */
+	.section-header {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		margin-bottom: 2rem;
+		padding-bottom: 0.5rem;
+		border-bottom: 2px solid #e8e8e8;
+	}
+
+	.section-header h2 {
+		font-size: 2rem;
+		font-weight: 700;
+		color: #1a1a1a;
+		margin: 0;
+		letter-spacing: -0.02em;
+	}
+
+	.view-more {
+		font-size: 1rem;
+		font-weight: 500;
+		color: #666;
 		text-decoration: none;
+		transition: color 0.2s ease;
 	}
 
-	.nav-link:hover {
-		text-decoration: underline;
+	.view-more:hover {
+		color: #355E3B;
+	}
+
+	.empty-state {
+		text-align: center;
+		padding: 3rem 0;
+		color: #888;
+	}
+
+	.article-meta {
+		font-size: 0.9rem;
+		font-weight: 400;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+	}
+
+	.article-meta .author {
+		font-weight: 600;
+	}
+
+	.article-meta .separator {
+		color: #ddd;
+	}
+
+	/* 웹진 섹션 */
+	.webzine-section {
+		margin-bottom: 4rem;
+	}
+
+	/* 그리드 레이아웃 - 고정 높이로 설정 */
+	.webzine-grid {
+		display: grid;
+		grid-template-columns: 1fr 1fr;
+		gap: 2rem;
+		align-items: start;
+		height: 400px;
+	}
+
+	/* 왼쪽 피처드 기사 */
+	.featured-article {
+		width: 100%;
+		height: 100%;
+	}
+
+	.featured-link {
+		display: block;
+		text-decoration: none;
+		color: inherit;
+		border-radius: 16px;
+		overflow: hidden;
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+		transition: all 0.3s ease;
+		height: 100%;
+	}
+
+	.featured-link:hover {
+		transform: translateY(-4px);
+		box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+	}
+
+	.featured-image-container {
+		position: relative;
+		height: 100%;
+		overflow: hidden;
+	}
+
+	.featured-image {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		transition: transform 0.3s ease;
+	}
+
+	.featured-link:hover .featured-image {
+		transform: scale(1.05);
+	}
+
+	.featured-no-image {
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(135deg, #355E3B 0%, #4a7c59 100%);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: white;
+	}
+
+	/* 오버레이 스타일 - 두 카드 공통 */
+	.featured-content-overlay,
+	.sidebar-content-overlay {
+		position: absolute;
+		bottom: 0;
+		left: 0;
+		right: 0;
+		background: linear-gradient(to top, rgba(0, 0, 0, 0.9) 0%, rgba(0, 0, 0, 0.9) 50%, rgba(0, 0, 0, 0.6) 90%, rgba(0, 0, 0, 0) 100%);
+		color: white;
+		padding: 1.5rem;
+	}
+
+	/* 콘텐츠 스타일 - 두 카드 공통 */
+	.featured-content,
+	.sidebar-content {
+		position: relative;
+	}
+
+	/* 제목 스타일 - 두 카드 공통 */
+	.featured-title,
+	.sidebar-title {
+		font-size: 1.2rem;
+		font-weight: 700;
+		color: white;
+		margin: 0 0 0.5rem 0;
+		line-height: 1.4;
+		letter-spacing: -0.02em;
+		display: -webkit-box;
+		-webkit-line-clamp: 2;
+		-webkit-box-orient: vertical;
+		overflow: hidden;
+	}
+
+	/* 날짜 스타일 - 두 카드 공통 */
+	.featured-date,
+	.sidebar-date {
+		color: rgba(255, 255, 255, 0.8);
+		font-size: 0.85rem;
+		font-weight: 400;
+	}
+
+	/* 오른쪽 사이드바 아티클들 */
+	.sidebar-articles {
+		display: flex;
+		flex-direction: column;
+		gap: 1.5rem;
+		height: 100%;
+	}
+
+	.sidebar-article {
+		background: white;
+		border-radius: 16px;
+		box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+		transition: all 0.3s ease;
+		overflow: hidden;
+		height: 100%;
+		flex: 1;
+	}
+
+	.sidebar-article:hover {
+		transform: translateY(-4px);
+		box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+	}
+
+	.sidebar-link {
+		display: block;
+		text-decoration: none;
+		color: inherit;
+		height: 100%;
+	}
+
+	.sidebar-image-container {
+		position: relative;
+		width: 100%;
+		height: 100%;
+		overflow: hidden;
+		background: #f5f5f5;
+		display: flex;
+		align-items: center;
+		justify-content: center;
+	}
+
+	.sidebar-image {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		transition: transform 0.3s ease;
+	}
+
+	.sidebar-article:hover .sidebar-image {
+		transform: scale(1.05);
+	}
+
+	.sidebar-no-image {
+		width: 100%;
+		height: 100%;
+		background: linear-gradient(135deg, #355E3B 0%, #4a7c59 100%);
+		display: flex;
+		align-items: center;
+		justify-content: center;
+		color: white;
+	}
+
+	/* 위키 목록 스타일 */
+	.wiki-list {
+		list-style: none;
+		padding: 0;
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+		gap: 1rem;
+	}
+
+	.wiki-card {
+		background: #f7f7f7;
+		border-radius: 8px;
+		overflow: hidden;
+		transition: background-color 0.2s ease;
+	}
+
+	.wiki-card:hover {
+		background-color: #eee;
+	}
+
+	.wiki-card a {
+		display: block;
+		padding: 1rem 1.25rem;
+		text-decoration: none;
+		color: #1a1a1a;
+	}
+
+	.wiki-card h3 {
+		font-size: 1.1rem;
+		font-weight: 600;
+		margin: 0;
+		line-height: 1.4;
+	}
+
+	/* 아카이브 목록 스타일 */
+	.archive-grid {
+		display: grid;
+		grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+		gap: 1.5rem;
+	}
+
+	.archive-card {
+		background: white;
+		border-radius: 12px;
+		box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+		transition: all 0.2s ease;
+		text-decoration: none;
+		color: inherit;
+		display: flex;
+		flex-direction: column;
+		min-height: 180px;
+	}
+
+	.archive-card:hover {
+		transform: translateY(-4px);
+		box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+	}
+
+	.archive-card .card-content {
+		padding: 1.5rem;
+		height: 100%;
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+	}
+
+	.resource-meta {
+		font-size: 0.875rem;
+		color: #888;
+		display: flex;
+		align-items: center;
+		gap: 0.5rem;
+		flex-wrap: wrap;
+	}
+
+	.resource-type {
+		font-weight: 600;
+		color: #355E3B;
+	}
+
+	.separator {
+		color: #ccc;
+	}
+
+	.copyright-status {
+		color: #666;
+	}
+
+	.archive-card .card-title {
+		font-size: 1.25rem;
+		font-weight: 600;
+		line-height: 1.4;
+		color: #1a1a1a;
+		margin: 0;
+		letter-spacing: -0.01em;
+		flex-grow: 1;
+	}
+
+	/* 반응형 디자인 */
+	@media (max-width: 1200px) {
+		.main-content {
+			padding: 0 1rem;
+		}
+	}
+
+	@media (max-width: 768px) {
+		.webzine-grid {
+			grid-template-columns: 1fr;
+			gap: 1.5rem;
+			height: auto;
+		}
+
+		.featured-article {
+			height: auto;
+		}
+
+		.featured-link {
+			height: auto;
+		}
+
+		.featured-image-container {
+			height: 250px;
+		}
+
+		.sidebar-article {
+			height: auto;
+		}
+
+		.sidebar-image-container {
+			height: 250px;
+		}
+
+		.sidebar-articles {
+			gap: 1rem;
+		}
+
+		.featured-title {
+			font-size: 1.2rem;
+		}
+
+		.sidebar-content-wrapper {
+			padding: 1rem;
+		}
+
+		.sidebar-title {
+			font-size: 1rem;
+		}
+
+		.main-content {
+			padding: 0 1rem;
+		}
 	}
 </style>
