@@ -13,8 +13,8 @@ export async function getStaticPaths() {
         const data = await response.json();
         const resources = data.data || [];
 
-        console.log('🔍 API에서 가져온 리소스 개수:', resources.length);
-        console.log('🔍 리소스 documentId 목록:', resources.map(r => r.documentId));
+        // console.log('🔍 API에서 가져온 리소스 개수:', resources.length);
+        // console.log('🔍 리소스 documentId 목록:', resources.map(r => r.documentId));
 
         if (resources.length === 0) {
             console.warn('⚠️ API에서 리소스를 가져오지 못했습니다.');
@@ -26,8 +26,8 @@ export async function getStaticPaths() {
             props: { resource }
         }));
 
-        console.log('🔍 최종 생성된 경로 개수:', staticPaths.length);
-        console.log('🔍 생성된 모든 slug:', staticPaths.map(r => r.params.slug));
+        // console.log('🔍 최종 생성된 경로 개수:', staticPaths.length);
+        // console.log('🔍 생성된 모든 slug:', staticPaths.map(r => r.params.slug));
 
         return staticPaths;
 
@@ -61,7 +61,7 @@ const resourceTypeMap = {
 
 const translatedResourceType = resourceTypeMap[resource.resource_type] || resource.resource_type;
 
-// Rich Text를 HTML로 변환하는 함수 (링크 처리 개선)
+// Rich Text를 HTML로 변환하는 함수
 function convertRichTextToHTML(richTextArray) {
     if (!richTextArray || !Array.isArray(richTextArray)) {
         return '';
@@ -109,13 +109,52 @@ let finalUrl = null;
 let buttonText = '링크 없음';
 
 // 원문 URL의 유효성을 먼저 검사합니다.
+import { Agent } from 'undici';
+
+// SSL 인증서 오류를 무시하는 Agent를 생성합니다.
+const sslAgent = new Agent({
+    connect: {
+        rejectUnauthorized: false
+    }
+});
+
 let isSourceBroken = false;
 if (resource.source_url) {
     try {
-        const urlResponse = await fetch(resource.source_url, { method: 'HEAD', timeout: 5000 });
-        isSourceBroken = !urlResponse.ok;
+        // 첫 번째 시도: HEAD 요청
+        const headResponse = await fetch(resource.source_url, {
+            method: 'HEAD',
+            timeout: 5000,
+            dispatcher: sslAgent
+        });
+        isSourceBroken = !headResponse.ok;
+
+        // HEAD 요청이 실패하면 GET 요청으로 재시도
+        if (isSourceBroken) {
+            console.log('HEAD 요청 실패. GET 요청으로 재시도합니다.');
+            const getResponse = await fetch(resource.source_url, {
+                method: 'GET',
+                timeout: 5000,
+                dispatcher: sslAgent
+            });
+            isSourceBroken = !getResponse.ok;
+        }
+
     } catch (e) {
-        isSourceBroken = true;
+        // 네트워크 오류 등 예외가 발생하면 GET 요청으로 재시도
+        console.log('네트워크 오류 발생. GET 요청으로 재시도합니다.');
+        try {
+            const getResponse = await fetch(resource.source_url, {
+                method: 'GET',
+                timeout: 5000,
+                dispatcher: sslAgent
+            });
+            isSourceBroken = !getResponse.ok;
+        } catch (e) {
+            // GET 요청까지 실패하면 유효하지 않은 것으로 간주
+            console.error('GET 요청까지 실패했습니다.', e);
+            isSourceBroken = true;
+        }
     }
 }
 
