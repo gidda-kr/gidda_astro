@@ -242,6 +242,11 @@ const lastUpdated = new Date(wiki.updatedAt).toLocaleDateString('ko-KR', {
             <span class="page-type-label">위키</span>
             <p class="last-updated">최근 업데이트: {lastUpdated}</p>
         </div>
+        <div class="upper-banner">
+            <a href="https://petitions.assembly.go.kr/proceed/onGoingAll/3791FDDC3FA4639BE064B49691C6967B" target="_blank">
+                <img src="/publicrenewable.png">
+            </a>
+        </div>
 
         {wiki.archive_collections && wiki.archive_collections.length > 0 && (
                 <section class="related-collections">
@@ -316,6 +321,10 @@ const lastUpdated = new Date(wiki.updatedAt).toLocaleDateString('ko-KR', {
 </style>
 
 <style>
+    .upper-banner {
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+    }
     .last-updated {
         color: #666;
         font-size: 0.9em;
@@ -349,7 +358,7 @@ const lastUpdated = new Date(wiki.updatedAt).toLocaleDateString('ko-KR', {
         border-color: #4CAF50; /* ✅ LinkCard 외부 링크와 동일한 hover 효과 */
     }
     .card-content {
-        padding: 1.5rem 1.25rem; /* ✅ LinkCard 외부 링크와 동일한 패딩 */
+        padding: 1rem 1rem; /* ✅ LinkCard 외부 링크와 동일한 패딩 */
         height: 100%;
         display: flex;
         flex-direction: column;
