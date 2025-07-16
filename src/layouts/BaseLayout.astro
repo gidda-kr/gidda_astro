@@ -19,19 +19,15 @@ const {
 <!doctype html>
 <html lang="ko">
 <head>
-    <!-- Google Tag Manager -->
     <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
             new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
         j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
         'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
     })(window,document,'script','dataLayer','GTM-WT36B8Z9');</script>
-    <!-- End Google Tag Manager -->
-
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="description" content={description} />
 
-    <!-- Open Graph / Facebook -->
     <meta property="og:type" content={type} />
     <meta property="og:url" content={url} />
     <meta property="og:title" content={title} />
@@ -42,7 +38,6 @@ const {
     <meta property="og:site_name" content="에코 라이브러리 - 긷다" />
     <meta property="og:locale" content="ko_KR" />
 
-    <!-- Twitter -->
     <meta property="twitter:card" content="summary_large_image" />
     <meta property="twitter:url" content={url} />
     <meta property="twitter:title" content={title} />
@@ -51,7 +46,6 @@ const {
 
     <title>{title} - 에코 라이브러리 긷다</title>
 
-    <!-- ✨ 파비콘 설정 추가 ✨ -->
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 
     <script type="application/ld+json">
@@ -166,17 +160,69 @@ const {
             height: 100%;
         }
 
-        .main-nav a {
-            margin: 0 2.1rem; /* 간격 늘림 */
-            font-weight: normal;
-            font-size: 1.3rem; /* 네비게이션 폰트 크기 증가 (1.1rem -> 1.3rem) */
-            color: #333230;
-            padding-bottom: 5px; /* 하단 여백 추가 */
+        /* 아카이브 메뉴 정렬을 위한 스타일 수정 */
+        .main-nav .dropdown {
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            margin: 0 2.1rem; /* 다른 링크와 동일한 간격 유지 */
+            height: 100%;
+            padding-bottom: 5px; /* 다른 링크와 동일한 패딩 유지 */
         }
+
+        .main-nav a {
+            font-weight: normal;
+            font-size: 1.3rem;
+            color: #333230;
+            text-decoration: none;
+            transition: color 0.2s ease;
+        }
+
+        /* 다른 모든 최상위 링크에 동일한 마진과 패딩을 적용 */
+        .main-nav > a {
+            margin: 0 2.1rem;
+            padding-bottom: 5px;
+        }
+
         .main-nav a:hover {
             color: #355E3B;
-            text-decoration: none;
         }
+        /* ✨ 하위 메뉴 스타일 수정 시작 ✨ */
+        .main-nav .dropdown-content {
+            display: none;
+            position: absolute;
+            top: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #f4f0e5;
+            min-width: 120px; /* 가로 폭을 줄여 깔끔하게 */
+            box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.1);
+            z-index: 1;
+            border-radius: 5px;
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+        }
+
+        .main-nav .dropdown-content a {
+            color: #333230;
+            padding: 10px 16px; /* 여백 조정 */
+            text-decoration: none;
+            display: block;
+            text-align: center; /* 가운데 정렬 */
+            margin: 0;
+            font-size: 1.1rem;
+            font-weight: 500;
+        }
+
+        .main-nav .dropdown-content a:hover {
+            background-color: #e8e4d9;
+            color: #355E3B;
+        }
+
+        .main-nav .dropdown:hover .dropdown-content {
+            display: block;
+        }
+        /* ✨ 하위 메뉴 스타일 수정 끝 ✨ */
 
         /* 햄버거 메뉴 버튼 */
         .mobile-menu-toggle {
@@ -299,6 +345,14 @@ const {
             .main-nav {
                 display: none;
             }
+            /* ✨ 모바일 메뉴에서 하위 메뉴 스타일 ✨ */
+            .mobile-nav a {
+                padding-left: 1.5rem;
+            }
+            .mobile-nav .sub-menu a {
+                padding-left: 2.5rem;
+                border-top: 1px solid #e0e0e0;
+            }
         }
 
         #scrollToTopBtn {
@@ -327,13 +381,10 @@ const {
     </style>
 </head>
 <body>
-<!-- Google Tag Manager (noscript) -->
 <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=GTM-WT36B8Z9"
                   height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
-<!-- End Google Tag Manager (noscript) -->
 <header class="site-header">
     <div class="header-container">
-        <!-- 로고 -->
         <div class="site-logo">
             <a href="/" aria-label="긷다 홈으로">
                 <svg width="160" height="50" viewBox="0 0 160 50" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -351,16 +402,19 @@ const {
             </a>
         </div>
 
-        <!-- 데스크톱 네비게이션 -->
         <nav class="main-nav">
-            <a href="/archive">아카이브</a>
+            <div class="dropdown">
+                <a href="/archive">아카이브</a>
+                <div class="dropdown-content">
+                    <a href="/archive/collection">컬렉션</a>
+                </div>
+            </div>
             <a href="/wiki">위키</a>
             <a href="/webzine">웹진</a>
             <a href="/">웹북</a>
             <a href="/about">소개</a>
         </nav>
 
-        <!-- 모바일 햄버거 버튼 -->
         <button class="mobile-menu-toggle" id="mobileMenuToggle" aria-label="메뉴 열기">
             <div class="hamburger">
                 <span></span>
@@ -369,10 +423,12 @@ const {
             </div>
         </button>
 
-        <!-- 모바일 네비게이션 -->
         <nav class="mobile-nav" id="mobileNav">
             <a href="/">홈</a>
             <a href="/archive">아카이브</a>
+            <div class="sub-menu">
+                <a href="/archive/collection">컬렉션</a>
+            </div>
             <a href="/wiki">위키</a>
             <a href="/webzine">웹진</a>
             <a href="/">웹북</a>

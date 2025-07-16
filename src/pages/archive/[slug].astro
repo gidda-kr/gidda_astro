@@ -5,7 +5,7 @@ export async function getStaticPaths() {
     const STRAPI_URL = 'https://strapi-app-63132904920.asia-northeast3.run.app';
 
     try {
-        const response = await fetch(`${STRAPI_URL}/api/resources?populate[actors][fields][0]=name&populate[attachments][fields][0]=url&populate[attachments][fields][1]=name`);
+        const response = await fetch(`${STRAPI_URL}/api/resources?populate[actors][fields][0]=name&populate[attachments][fields][0]=url&populate[attachments][fields][1]=name&populate[archive_collections][fields][0]=title&populate[archive_collections][fields][1]=slug`);
         if (!response.ok) {
             console.error(`API 호출 실패: ${response.status}`);
             return [];
@@ -40,6 +40,11 @@ export async function getStaticPaths() {
 const STRAPI_URL = 'https://strapi-app-63132904920.asia-northeast3.run.app';
 const { resource } = Astro.props;
 
+// --- 디버깅 로그 추가 ---
+// console.log('--- Astro Props Debug ---');
+// console.log('Received resource prop:', resource);
+// console.log('-------------------------');
+
 if (!resource) {
     return Astro.redirect('/404');
 }
@@ -61,45 +66,49 @@ const resourceTypeMap = {
 
 const translatedResourceType = resourceTypeMap[resource.resource_type] || resource.resource_type;
 
-// Rich Text를 HTML로 변환하는 함수
+// 리치 텍스트를 HTML로 변환하는 더 구조적인 함수
 function convertRichTextToHTML(richTextArray) {
     if (!richTextArray || !Array.isArray(richTextArray)) {
         return '';
     }
 
     return richTextArray.map(block => {
-        if (block.type === 'paragraph' && block.children) {
-            const content = block.children.map(child => {
-                // 링크인 경우
-                if (child.type === 'link') {
-                    const linkText = child.children ?
-                        child.children.map(linkChild => linkChild.text || '').join('') :
-                        (child.text || child.url || '링크');
-                    return `<a href="${child.url}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
-                }
-                // 일반 텍스트인 경우
-                else if (child.text) {
-                    let text = child.text;
-
-                    // 서식 적용
-                    if (child.bold) text = `<strong>${text}</strong>`;
-                    if (child.italic) text = `<em>${text}</em>`;
-                    if (child.underline) text = `<u>${text}</u>`;
-                    if (child.strikethrough) text = `<s>${text}</s>`;
-
-                    return text;
-                }
-                return '';
-            }).join('');
-
-            if (content.trim() === '') {
-                return '<br>';
+        switch (block.type) {
+            case 'paragraph': {
+                const content = block.children.map(child => parseInlineContent(child)).join('');
+                return `<p>${content}</p>`;
             }
-
-            return `<p>${content}</p>`;
+            case 'list': {
+                const listType = block.format === 'ordered' ? 'ol' : 'ul';
+                const listItems = block.children.map(item => {
+                    const content = item.children.map(child => parseInlineContent(child)).join('');
+                    return `<li>${content}</li>`;
+                }).join('');
+                return `<${listType}>${listItems}</${listType}>`;
+            }
+            default:
+                return ''; // 정의되지 않은 블록 타입 무시
         }
-        return '';
     }).join('');
+}
+
+// 텍스트와 링크를 처리하는 내부 함수
+function parseInlineContent(child) {
+    // 링크 처리
+    if (child.type === 'link') {
+        const linkText = child.children.map(linkChild => parseInlineContent(linkChild)).join('') || '링크';
+        return `<a href="${child.url}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
+    }
+    // 일반 텍스트 및 서식 적용
+    else if (child.text) {
+        let text = child.text;
+        if (child.bold) text = `<strong>${text}</strong>`;
+        if (child.italic) text = `<em>${text}</em>`;
+        if (child.underline) text = `<u>${text}</u>`;
+        if (child.strikethrough) text = `<s>${text}</s>`;
+        return text;
+    }
+    return '';
 }
 
 const fullContent = convertRichTextToHTML(resource.summary_content);
@@ -157,6 +166,10 @@ if (resource.source_url) {
         }
     }
 }
+// --- 디버깅 로그 추가 ---
+// console.log('Final URL:', finalUrl, 'Button Text:', buttonText);
+// -------------------------
+
 
 // 1. 원문 URL이 있고 유효한 경우, 원문 페이지로 이동
 if (resource.source_url && !isSourceBroken) {
@@ -210,6 +223,20 @@ else {
                     </div>
             )}
 
+            {resource.archive_collections?.length > 0 && (
+                    <div class="metadata-item related-collections">
+                        <strong>관련 아카이브</strong>
+                        <ul>
+                            {resource.archive_collections.map(collection => (
+                                    <li>
+                                        <a href={`/archive/collection/${collection.slug}`}>
+                                            {collection.title}
+                                        </a>
+                                    </li>
+                            ))}
+                        </ul>
+                    </div>
+            )}
             <div class="action-buttons">
                 {finalUrl ? (
                         <a href={finalUrl} class="button-primary" target="_blank" rel="noopener noreferrer">{buttonText}</a>
@@ -273,6 +300,31 @@ else {
     .metadata-item {
         margin-bottom: 1rem;
     }
+
+    .related-collections ul {
+        list-style-type: none;
+        padding-left: 0;
+        margin-top: 0.5rem;
+    }
+
+    .related-collections li {
+        margin-bottom: 0.25rem;
+    }
+
+    .related-collections a {
+        display: block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        background-color: #f5f5f5;
+        color: #1a1a1a;
+        text-decoration: none;
+        transition: background-color 0.2s ease;
+    }
+
+    .related-collections a:hover {
+        background-color: #e0e0e0;
+    }
+
 
     .metadata-item strong {
         display: block;

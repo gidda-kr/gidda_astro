@@ -1,0 +1,246 @@
+---
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+
+// Strapi API 엔드포인트 설정
+const STRAPI_URL = 'https://strapi-app-63132904920.asia-northeast3.run.app';
+const API_PATH = '/api/archive-collections';
+
+// 최적화된 쿼리: 컬렉션의 기본 정보와 함께, 포함된 자료의 개수를 가져옵니다.
+const QUERY_PARAMS = '?sort[0]=publishedAt:desc&populate[resources][count]=true';
+
+let collections = [];
+try {
+    const response = await fetch(`${STRAPI_URL}${API_PATH}${QUERY_PARAMS}`);
+    if (!response.ok) {
+        throw new Error(`API 호출 실패: ${response.status}`);
+    }
+    const data = await response.json();
+
+    if (data.data) {
+        // collections.map(item => item.attributes) 대신,
+        // 아래 map 함수 내에서 attributes에 접근하도록 코드를 변경했습니다.
+        collections = data.data;
+    }
+} catch (error) {
+    console.error("Strapi API에서 아카이브 컬렉션을 가져오는 데 실패했습니다:", error);
+}
+
+// 리치 텍스트를 HTML로 변환하는 함수 (기존 함수 재사용)
+function convertRichTextToHTML(richTextArray) {
+    if (!richTextArray || !Array.isArray(richTextArray)) {
+        return '';
+    }
+
+    return richTextArray.map(block => {
+        switch (block.type) {
+            case 'paragraph': {
+                const content = block.children.map(child => parseInlineContent(child)).join('');
+                return `<p>${content}</p>`;
+            }
+            case 'list': {
+                const listType = block.format === 'ordered' ? 'ol' : 'ul';
+                const listItems = block.children.map(item => {
+                    const content = item.children.map(child => parseInlineContent(child)).join('');
+                    return `<li>${content}</li>`;
+                }).join('');
+                return `<${listType}>${listItems}</${listType}>`;
+            }
+            default:
+                return '';
+        }
+    }).join('');
+}
+
+function parseInlineContent(child) {
+    if (child.type === 'link') {
+        const linkText = child.children.map(linkChild => parseInlineContent(linkChild)).join('') || '링크';
+        return `<a href="${child.url}" target="_blank" rel="noopener noreferrer">${linkText}</a>`;
+    }
+    else if (child.text) {
+        let text = child.text;
+        if (child.bold) text = `<strong>${text}</strong>`;
+        if (child.italic) text = `<em>${text}</em>`;
+        if (child.underline) text = `<u>${text}</u>`;
+        if (child.strikethrough) text = `<s>${text}</s>`;
+        return text;
+    }
+    return '';
+}
+
+const pageDescription = "관련 자료들을 묶음으로 볼 수 있는 컬렉션 목록입니다.";
+---
+
+<BaseLayout title="컬렉션 목록" description={pageDescription}>
+    <article class="archive-list-container">
+        <header class="page-header">
+            <h1>컬렉션</h1>
+            <p class="resource-count">총 {collections.length}개의 컬렉션</p>
+        </header>
+
+        {collections.length === 0 ? (
+                <div class="empty-state">
+                    <p>아직 등록된 컬렉션이 없습니다.</p>
+                    <p>Strapi에서 첫 번째 컬렉션을 등록해 보세요!</p>
+                </div>
+        ) : (
+                <div class="archive-grid">
+                    {collections.map((collection) => {
+                        // V4 API의 일반적인 구조인 attributes가 있는 경우와 없는 경우를 모두 처리합니다.
+                        const { id, title, slug, description, resources } = collection.attributes || collection;
+                        const resourceCount = resources?.data ? resources.data.length : (resources?.count || 0);
+
+                        return (
+                                <a href={`/archive/collection/${slug}`} class="card">
+                                    <div class="card-content">
+                                        <div class="resource-meta">
+                                            <span class="resource-type">총 {resourceCount}개 자료</span>
+                                        </div>
+                                        <h2 class="card-title">{title}</h2>
+                                        <div class="card-description" set:html={convertRichTextToHTML(description)}></div>
+                                    </div>
+                                </a>
+                        )
+                    })}
+                </div>
+        )}
+    </article>
+</BaseLayout>
+
+<style>
+    .archive-list-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 1rem 2rem;
+        font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    }
+
+    .page-header {
+        text-align: center;
+        margin-bottom: 3rem;
+        padding-bottom: 2rem;
+        border-bottom: 1px solid #e8e8e8;
+    }
+
+    .page-header h1 {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: #1a1a1a;
+        margin-bottom: 1rem;
+        letter-spacing: -0.02em;
+    }
+
+    .resource-count {
+        font-size: 1.1rem;
+        color: #666;
+        margin: 0;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: #666;
+        font-size: 1.1rem;
+        line-height: 1.6;
+    }
+
+    /* 그리드 레이아웃 */
+    .archive-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+
+    .card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        transition: all 0.2s ease;
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+        min-height: 180px; /* 높이를 조금 늘림 */
+    }
+
+    .card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
+    }
+
+    .card-content {
+        padding: 1.5rem;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .resource-meta {
+        font-size: 0.875rem;
+        color: #888;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .resource-meta .separator {
+        color: #ccc;
+    }
+
+    .resource-type {
+        font-weight: 600;
+        color: #355E3B;
+    }
+
+    .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        line-height: 1.4;
+        color: #1a1a1a;
+        margin: 0;
+        letter-spacing: -0.01em;
+        flex-grow: 1; /* 제목이 가능한 공간을 차지 */
+    }
+
+    .card-description p {
+        margin: 0;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        color: #4a4a4a;
+        /* 여러 줄 말줄임표 처리 */
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    /* footer는 이 페이지에서 사용하지 않습니다. */
+    .card-footer {
+        display: none;
+    }
+
+    /* 반응형 디자인 */
+    @media (max-width: 768px) {
+        .archive-list-container {
+            padding: 1rem;
+        }
+
+        .archive-grid {
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+        }
+
+        .page-header h1 {
+            font-size: 2rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .archive-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>

@@ -8,368 +8,387 @@ import LinkCard from '~/components/LinkCard.astro';
 import Footnotes from '~/components/Footnotes.astro';
 import Callout from '~/components/Callout.astro';
 import Image from '~/components/Image.astro';
-
 import MarkdownIt from 'markdown-it';
 
 const components = {
-  'common.content': Content,
-  'common.list-item': ListItem,
-  'common.link-card': LinkCard,
-  'common.footnotes': Footnotes,
-  'common.callout': Callout,
-  'common.image': Image,
+    'common.content': Content,
+    'common.list-item': ListItem,
+    'common.link-card': LinkCard,
+    'common.footnotes': Footnotes,
+    'common.callout': Callout,
+    'common.image': Image,
 };
 
 export async function getStaticPaths() {
-  const strapiUrl = 'https://strapi-app-63132904920.asia-northeast3.run.app';
-  const apiPath = '/api/wikis?populate[content][populate]=*';
+    const strapiUrl = 'https://strapi-app-63132904920.asia-northeast3.run.app';
+    const apiPath = '/api/wikis?populate[content][populate]=*&populate[archive_collections][fields][0]=title&populate[archive_collections][fields][1]=slug';
 
-  try {
-    const response = await fetch(`${strapiUrl}${apiPath}`);
-    if (!response.ok) {
-      console.error(`Strapi API 호출 실패: ${response.status}`);
-      return [];
+    try {
+        const response = await fetch(`${strapiUrl}${apiPath}`);
+        if (!response.ok) {
+            console.error(`Strapi API 호출 실패: ${response.status}`);
+            return [];
+        }
+        const { data } = await response.json();
+        if (!data) return [];
+
+        const allSlugs = new Set(data.map(wiki => wiki.slug).filter(Boolean));
+
+        return data.map((wiki) => {
+            if (!wiki || !wiki.slug) return null;
+            return {
+                params: { slug: wiki.slug },
+                props: {
+                    wiki: wiki,
+                    allWikiSlugs: Array.from(allSlugs)
+                },
+            };
+        }).filter(Boolean);
+
+    } catch (error) {
+        console.error("getStaticPaths 함수 실행 중 예외 발생:", error);
+        return [];
     }
-    const { data } = await response.json();
-    if (!data) return [];
-
-    const allSlugs = new Set(data.map(wiki => wiki.slug).filter(Boolean));
-
-    return data.map((wiki) => {
-      if (!wiki || !wiki.slug) return null;
-      return {
-        params: { slug: wiki.slug },
-        props: {
-          wiki: wiki,
-          allWikiSlugs: Array.from(allSlugs)  // ✅ 이 이름 확인
-        },
-      };
-    }).filter(Boolean);
-
-  } catch (error) {
-    console.error("getStaticPaths 함수 실행 중 예외 발생:", error);
-    return [];
-  }
 }
 
-// ✅ 핵심 수정: 정확한 prop 이름 사용
 const { wiki, allWikiSlugs } = Astro.props;
 const allSlugsSet = new Set(allWikiSlugs);
 
-// ✅ 디버깅용 로그 추가
-console.log('allWikiSlugs:', allWikiSlugs);
-console.log('allSlugsSet size:', allSlugsSet.size);
-
 if (!wiki) {
-  return Astro.redirect('/404');
+    return Astro.redirect('/404');
 }
 
-// --- ✅ meta description 생성 로직 시작 ---
+// --- meta description 생성 로직 시작 ---
 const firstContentItem = wiki.content?.find(
     (item) => item.__component === 'common.content'
 );
-
 let pageDescription = '';
 
 if (firstContentItem && firstContentItem.content) {
-  let plainText = firstContentItem.content
-      .replace(/<[^>]*>/g, '')
-      .replace(/\[\^[^\]]+\]/g, '')
-      .replace(/\[[^\]]+\]\([^)]+\)/g, '');
+    let plainText = firstContentItem.content
+        .replace(/<[^>]*>/g, '')
+        .replace(/\[\^[^\]]+\]/g, '')
+        .replace(/\[[^\]]+\]\([^)]+\)/g, '');
 
-  pageDescription = plainText.length > 150
-      ? `${plainText.substring(0, 150).trim()}...`
-      : plainText.trim();
+    pageDescription = plainText.length > 150
+        ? `${plainText.substring(0, 150).trim()}...`
+        : plainText.trim();
 }
-// --- ✅ meta description 생성 로직 끝 ---
+// --- meta description 생성 로직 끝 ---
 
-// --- ✅ Open Graph 이미지 로직 시작 ---
-let ogImage = new URL("/default-og-image.png", Astro.url.origin).href; // 기본 폴백 이미지 (절대 경로로 시작)
-
-// wiki.content에서 common.image 컴포넌트를 찾습니다.
+// --- Open Graph 이미지 로직 시작 ---
+let ogImage = new URL("/default-og-image.png", Astro.url.origin).href;
 const firstImageComponent = wiki.content?.find(
     (item) => item.__component === 'common.image' && item.image && item.image.url
 );
 
 if (firstImageComponent) {
-  // 찾은 이미지 컴포넌트의 URL을 사용합니다.
-  ogImage = firstImageComponent.image.url;
+    ogImage = firstImageComponent.image.url;
 }
-
-// ✨ 여기 로그를 추가해서 ogImage에 최종적으로 뭐가 들어있는지 확인
-console.log('Final ogImage value:', ogImage);
-// --- ✅ Open Graph 이미지 로직 끝 ---
+// --- Open Graph 이미지 로직 끝 ---
 
 const globalFootnotes = new Map<string, { number: number; content: string; refs: string[] }>();
 let footnoteCounter = 1;
 const footnoteRefCounters = new Map<string, number>();
 
+// --- MarkdownIt 설정 및 규칙 ---
 const mdForContent = new MarkdownIt({
-  html: true,
-  typographer: true,
-  linkify: true,
+    html: true,
+    typographer: true,
+    linkify: true,
 });
 
 const defaultRender = mdForContent.renderer.rules.link_open || function(tokens, idx, options, env, self) {
-  return self.renderToken(tokens, idx, options);
+    return self.renderToken(tokens, idx, options);
 };
 
 mdForContent.renderer.rules.link_open = function (tokens: MarkdownIt.Token[], idx: number, options: MarkdownIt.Options, env: unknown, self: MarkdownIt.Renderer) {
-  const token = tokens[idx];
-  const hrefIndex = token.attrIndex('href');
+    const token = tokens[idx];
+    const hrefIndex = token.attrIndex('href');
 
-  if (hrefIndex >= 0) {
-    const href = token.attrs![hrefIndex][1];
-
-    if (href.startsWith('/wiki/')) {
-      const linkSlug = href.substring('/wiki/'.length);
-
-      // ✅ 디버깅용 로그 추가
-      console.log('Checking link slug:', linkSlug, 'exists:', allSlugsSet.has(linkSlug));
-
-      if (allSlugsSet && !allSlugsSet.has(linkSlug)) {
-        token.attrJoin('class', 'red-link');
-      }
+    if (hrefIndex >= 0) {
+        const href = token.attrs![hrefIndex][1];
+        if (href.startsWith('/wiki/')) {
+            const linkSlug = href.substring('/wiki/'.length);
+            if (allSlugsSet && !allSlugsSet.has(linkSlug)) {
+                token.attrJoin('class', 'red-link');
+            }
+        }
     }
-  }
-  return defaultRender(tokens, idx, options, env, self);
+    return defaultRender(tokens, idx, options, env, self);
 };
 
-// --- 1단계: 각주 정의 수집 ---
-function collectFootnoteDefinitions(contentArray) {
-  if (!contentArray || !Array.isArray(contentArray)) return;
-
-  contentArray.forEach(item => {
-    if (item.__component === 'common.content' && item.content) {
-      item.content.replace(/^\[(\^[^\]]+)\]:\s*(.+)$/gm, (match, ref, definition) => {
-        if (!globalFootnotes.has(ref)) {
-          globalFootnotes.set(ref, {
-            number: footnoteCounter++,
-            content: definition.trim(),
-            refs: []
-          });
+// --- 각주 관련 함수 ---
+function collectFootnoteDefinitions(contentArray: any[]) {
+    if (!contentArray || !Array.isArray(contentArray)) return;
+    contentArray.forEach(item => {
+        if (item.__component === 'common.content' && item.content) {
+            item.content.replace(/^\[(\^[^\]]+)\]:\s*(.+)$/gm, (match, ref, definition) => {
+                if (!globalFootnotes.has(ref)) {
+                    globalFootnotes.set(ref, { number: footnoteCounter++, content: definition.trim(), refs: [] });
+                }
+                return match;
+            });
+        } else if (item.__component === 'common.list-item' && item.items) {
+            item.items.forEach(listItem => {
+                if (listItem && typeof listItem.ListText === 'string') {
+                    listItem.ListText.replace(/^\[(\^[^\]]+)\]:\s*(.+)$/gm, (match, ref, definition) => {
+                        if (!globalFootnotes.has(ref)) {
+                            globalFootnotes.set(ref, { number: footnoteCounter++, content: definition.trim(), refs: [] });
+                        }
+                        return match;
+                    });
+                }
+            });
         }
-        return match;
-      });
-    }
-    else if (item.__component === 'common.list-item' && item.items) {
-      item.items.forEach(listItem => {
-        if (listItem && typeof listItem.ListText === 'string') {
-          listItem.ListText.replace(/^\[(\^[^\]]+)\]:\s*(.+)$/gm, (match, ref, definition) => {
-            if (!globalFootnotes.has(ref)) {
-              globalFootnotes.set(ref, {
-                number: footnoteCounter++,
-                content: definition.trim(),
-                refs: []
-              });
-            }
-            return match;
-          });
-        }
-      });
-    }
-  });
+    });
 }
 
-// --- 2단계: 각주 참조 변환 및 콘텐츠 렌더링 ---
-function processContentAfterFootnotesCollected(contentArray) {
-  if (!contentArray || !Array.isArray(contentArray)) return [];
+function processContentAfterFootnotesCollected(contentArray: any[]) {
+    if (!contentArray || !Array.isArray(contentArray)) return [];
+    const processFootnoteRefsInText = (text: string) => {
+        return text.replace(/\[(\^[^\]]+)\]/g, (match, ref) => {
+            const footnote = globalFootnotes.get(ref);
+            if (footnote) {
+                const currentCount = (footnoteRefCounters.get(ref) || 0) + 1;
+                footnoteRefCounters.set(ref, currentCount);
+                const displayRefText = currentCount === 1 ? `${footnote.number}` : `${footnote.number}:${currentCount}`;
+                const internalRefId = `${footnote.number}:${currentCount}`;
+                footnote.refs.push(internalRefId);
+                return `<sup><a href="#fn${footnote.number}" id="fnref${internalRefId}" class="footnote-ref">${displayRefText}</a></sup> `;
+            }
+            return match;
+        });
+    };
 
-  const processFootnoteRefsInText = (text: string) => {
-    return text.replace(/\[(\^[^\]]+)\]/g, (match, ref) => {
-      const footnote = globalFootnotes.get(ref);
-      if (footnote) {
-        const currentCount = (footnoteRefCounters.get(ref) || 0) + 1;
-        footnoteRefCounters.set(ref, currentCount);
-
-        const displayRefText = currentCount === 1 ? `${footnote.number}` : `${footnote.number}:${currentCount}`;
-        const internalRefId = `${footnote.number}:${currentCount}`;
-
-        footnote.refs.push(internalRefId);
-
-        return `<sup><a href="#fn${footnote.number}" id="fnref${internalRefId}" class="footnote-ref">${displayRefText}</a></sup> `;
-      }
-      return match;
-    });
-  };
-
-  return contentArray.map(item => {
-    if (item.__component === 'common.content' && item.content) {
-      let currentContent = item.content;
-
-      currentContent = currentContent.replace(/^\[(\^[^\]]+)\]:\s*(.+)$/gm, '');
-      currentContent = processFootnoteRefsInText(currentContent);
-
-      const htmlContent = mdForContent.render(currentContent);
-      return { ...item, content: htmlContent };
-
-    } else if (item.__component === 'common.list-item' && item.items) {
-      const processedItems = item.items.map((listItem, index) => {
-        if (listItem && typeof listItem.ListText === 'string') {
-          let listItemText = listItem.ListText;
-          listItemText = listItemText.replace(/^\[(\^[^\]]+)\]:\s*(.+)$/gm, '');
-          listItemText = processFootnoteRefsInText(listItemText);
-
-          const htmlListItemText = mdForContent.render(listItemText);
-          const finalHtml = htmlListItemText.replace(/^<p>(.*)<\/p>\s*$/s, '$1').trim();
-
-          return {
-            ...listItem,
-            ListText: finalHtml
-          };
+    return contentArray.map(item => {
+        if (item.__component === 'common.content' || item.__component === 'common.callout') {
+            let contentToProcess = item.content || '';
+            contentToProcess = contentToProcess.replace(/^\[(\^[^\]]+)\]:\s*(.+)$/gm, '');
+            contentToProcess = processFootnoteRefsInText(contentToProcess);
+            const htmlContent = mdForContent.render(contentToProcess);
+            let processedSource = item.source || '';
+            if (item.source) {
+                const renderedSource = mdForContent.render(item.source);
+                processedSource = renderedSource.replace(/^<p>(.*)<\/p>\s*$/s, '$1').trim();
+            }
+            return { ...item, content: htmlContent, source: processedSource };
+        } else if (item.__component === 'common.list-item' && item.items) {
+            const processedItems = item.items.map((listItem) => {
+                if (listItem && typeof listItem.ListText === 'string') {
+                    let listItemText = listItem.ListText;
+                    listItemText = listItemText.replace(/^\[(\^[^\]]+)\]:\s*(.+)$/gm, '');
+                    listItemText = processFootnoteRefsInText(listItemText);
+                    const htmlListItemText = mdForContent.render(listItemText);
+                    const finalHtml = htmlListItemText.replace(/^<p>(.*)<\/p>\s*$/s, '$1').trim();
+                    return { ...listItem, ListText: finalHtml };
+                }
+                return listItem;
+            });
+            return { ...item, items: processedItems };
         }
-        return listItem;
-      });
-      return { ...item, items: processedItems };
-    }
-
-    else if (item.__component === 'common.callout' && item.content) {
-      // Callout의 content와 source를 마크다운으로 렌더링합니다.
-      const processedContent = mdForContent.render(processFootnoteRefsInText(item.content));
-      let processedSource = item.source || '';
-
-      if (item.source) {
-        // source도 마크다운 렌더링을 적용합니다.
-        const renderedSource = mdForContent.render(item.source);
-        // render() 함수가 자동으로 생성하는 <p> 태그를 제거하여 깔끔하게 표시합니다.
-        processedSource = renderedSource.replace(/^<p>(.*)<\/p>\s*$/s, '$1').trim();
-      }
-
-      return { ...item, content: processedContent, source: processedSource };
-    }
-    // ✅ 여기에 common.image 처리 로직 추가
-    else if (item.__component === 'common.image') {
-      let processedCaption = item.caption || '';
-      let processedCopyright = item.copyright || '';
-
-      // caption 필드가 있다면 마크다운 렌더링 (각주 처리 제외)
-      if (item.caption) {
-        const renderedCaption = mdForContent.render(item.caption);
-        // 마크다운 렌더러가 자동으로 생성하는 <p> 태그를 제거하여 깔끔하게 표시
-        processedCaption = renderedCaption.replace(/^<p>(.*)<\/p>\s*$/s, '$1').trim();
-      }
-
-      // copyright 필드가 있다면 마크다운 렌더링 (각주 처리 제외)
-      if (item.copyright) {
-        const renderedCopyright = mdForContent.render(item.copyright);
-        // 마크다운 렌더러가 자동으로 생성하는 <p> 태그를 제거하여 깔끔하게 표시
-        processedCopyright = renderedCopyright.replace(/^<p>(.*)<\/p>\s*$/s, '$1').trim();
-      }
-
-      return {
-        ...item,
-        // Image.astro 컴포넌트가 받는 prop 이름에 맞춰서 전달
-        displayCaption: processedCaption,
-        copyright: processedCopyright,
-      };
-    }
-
-    return item;
-  });
+        else if (item.__component === 'common.image') {
+            let processedCaption = item.caption || '';
+            let processedCopyright = item.copyright || '';
+            if (item.caption) {
+                const renderedCaption = mdForContent.render(item.caption);
+                processedCaption = renderedCaption.replace(/^<p>(.*)<\/p>\s*$/s, '$1').trim();
+            }
+            if (item.copyright) {
+                const renderedCopyright = mdForContent.render(item.copyright);
+                processedCopyright = renderedCopyright.replace(/^<p>(.*)<\/p>\s*$/s, '$1').trim();
+            }
+            return {
+                ...item,
+                displayCaption: processedCaption,
+                copyright: processedCopyright,
+            };
+        }
+        return item;
+    });
 }
 
 // --- 실행 순서 ---
 collectFootnoteDefinitions(wiki.content);
-
 const processedContent = processContentAfterFootnotesCollected(wiki.content);
 
 if (globalFootnotes.size > 0) {
-  const hasFootnotesComponent = processedContent.some(item => item.__component === 'common.footnotes');
-
-  if (!hasFootnotesComponent) {
-    processedContent.push({
-      __component: 'common.footnotes',
-      id: 'auto-generated-footnotes'
-    });
-  }
+    const hasFootnotesComponent = processedContent.some(item => item.__component === 'common.footnotes');
+    if (!hasFootnotesComponent) {
+        processedContent.push({
+            __component: 'common.footnotes',
+            id: 'auto-generated-footnotes'
+        });
+    }
 }
 
 const lastUpdated = new Date(wiki.updatedAt).toLocaleDateString('ko-KR', {
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
 });
 ---
 
 <WikiPageLayout
-    title={wiki.title}
-    description={pageDescription}
-    image={ogImage} // ✨ 이 줄을 추가합니다.
-    url={Astro.url.href} // ✨ 이 줄을 추가합니다. (og:url 메타 태그를 위해)
-    type="article" // ✨ 이 줄을 추가합니다. (컨텐츠 타입 명시를 위해)
+        title={wiki.title}
+        description={pageDescription}
+        image={ogImage}
+        url={Astro.url.href}
+        type="article"
 >
-  <article class="wiki-content">
-    <h1>{wiki.title}</h1>
-    <div class="wiki-meta">
-      <span class="page-type-label">위키</span>
-      <p class="last-updated">최근 업데이트: {lastUpdated}</p>
-    </div>
+    <article class="wiki-content">
+        <h1>{wiki.title}</h1>
+        <div class="wiki-meta">
+            <span class="page-type-label">위키</span>
+            <p class="last-updated">최근 업데이트: {lastUpdated}</p>
+        </div>
 
-    {processedContent.map((componentData, index) => {
-      const Component = components[componentData.__component];
-      if (!Component) {
-        console.warn(`컴포넌트를 찾을 수 없습니다: ${componentData.__component}`);
-        return null;
-      }
+        {wiki.archive_collections && wiki.archive_collections.length > 0 && (
+                <section class="related-collections">
+                    <div class="archive-grid">
+                        {wiki.archive_collections.map((collection) => (
+                                <a href={`/archive/collection/${collection.slug}`} class="card" target="_blank">
+                                    <div class="card-content">
+                                        <h4 class="card-title-sub">관련 아카이브</h4>
+                                        <h3 class="card-title-main">{collection.title}</h3>
+                                    </div>
+                                </a>
+                        ))}
+                    </div>
+                </section>
+        )}
 
-      if (componentData.__component === 'common.footnotes') {
-        return <Component key={`${componentData.__component}-${index}`} footnotesMap={globalFootnotes} />;
-      }
-      return <Component key={`${componentData.__component}-${index}`} {...componentData} />;
-    })}
-  </article>
+        {processedContent.map((componentData, index) => {
+            const Component = components[componentData.__component];
+            if (!Component) {
+                console.warn(`컴포넌트를 찾을 수 없습니다: ${componentData.__component}`);
+                return null;
+            }
+            if (componentData.__component === 'common.footnotes') {
+                return <Component key={`${componentData.__component}-${index}`} footnotesMap={globalFootnotes} />;
+            }
+            return <Component key={`${componentData.__component}-${index}`} {...componentData} />;
+        })}
+    </article>
 </WikiPageLayout>
 
 <style is:global>
-  .wiki-content a.red-link {
-    color: #ff6666;
-    text-decoration: none;
-  }
-  .wiki-content a.red-link:hover {
-    color: #ff3333;
-    text-decoration: underline;
-  }
-
-  .footnote-ref {
-    vertical-align: super;
-    font-size: 0.75em;
-    line-height: 1;
-    text-decoration: none;
-    color: #388E3C;
-    font-weight: bold;
-  }
-  .footnote-ref:hover {
-    text-decoration: underline;
-  }
-
-  .wiki-meta {
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    margin-top: -0.5rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .page-type-label {
-    display: inline-block;
-    background: #355E3B;
-    color: white;
-    font-size: 0.75rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    padding: 0.5rem 1rem;
-    border-radius: 5px;
-    vertical-align: middle;
-    line-height: 1;
-    margin: 0;
-  }
+    .wiki-content a.red-link {
+        color: #ff6666;
+        text-decoration: none;
+    }
+    .wiki-content a.red-link:hover {
+        color: #ff3333;
+        text-decoration: underline;
+    }
+    .footnote-ref {
+        vertical-align: super;
+        font-size: 0.75em;
+        line-height: 1;
+        text-decoration: none;
+        color: #388E3C;
+        font-weight: bold;
+    }
+    .footnote-ref:hover {
+        text-decoration: underline;
+    }
+    .wiki-meta {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-top: -0.5rem;
+        margin-bottom: 1.5rem;
+    }
+    .page-type-label {
+        display: inline-block;
+        background: #355E3B;
+        color: white;
+        font-size: 0.75rem;
+        font-weight: 600;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 0.5rem 1rem;
+        border-radius: 5px;
+        vertical-align: middle;
+        line-height: 1;
+        margin: 0;
+    }
 </style>
 
 <style>
-  .last-updated {
-    color: #666;
-    font-size: 0.9em;
-    margin: 0;
-  }
+    .last-updated {
+        color: #666;
+        font-size: 0.9em;
+        margin: 0;
+    }
+    .related-collections {
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        max-width: 100%;
+    }
+    .archive-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+        gap: 1.5rem;
+        margin-top: 2rem;
+    }
+    .card {
+        background: #f4f0e5; /* ✅ LinkCard 외부 링크와 동일한 배경색 */
+        border: 1px solid #355E3B; /* ✅ LinkCard 외부 링크와 동일한 테두리 */
+        border-radius: 8px; /* ✅ LinkCard 외부 링크와 동일한 둥근 모서리 */
+        box-shadow: 0 1px 3px rgba(53, 94, 59, 0.1); /* ✅ LinkCard 외부 링크와 동일한 그림자 */
+        transition: all 0.2s ease;
+        text-decoration: none;
+        color: inherit;
+        display: flex;
+        flex-direction: column;
+    }
+    .card:hover {
+        transform: translateY(-1px); /* ✅ LinkCard 외부 링크와 동일한 hover 효과 */
+        box-shadow: 0 4px 12px rgba(53, 94, 59, 0.2);
+        border-color: #4CAF50; /* ✅ LinkCard 외부 링크와 동일한 hover 효과 */
+    }
+    .card-content {
+        padding: 1.5rem 1.25rem; /* ✅ LinkCard 외부 링크와 동일한 패딩 */
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+    .card-title-sub {
+        font-size: 0.75rem; /* ✅ LinkCard 외부 링크와 동일한 글꼴 크기 */
+        font-weight: 600;
+        color: #4CAF50; /* ✅ LinkCard 외부 링크와 동일한 글꼴 색상 */
+        margin: 0 0 0.5rem 0; /* ✅ LinkCard 외부 링크와 동일한 마진 */
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        text-align: center;
+    }
+    .card-title-main {
+        font-size: 1rem; /* ✅ LinkCard 외부 링크와 동일한 글꼴 크기 */
+        font-weight: 700;
+        line-height: 1.3;
+        color: #355E3B;
+        margin: 0;
+        letter-spacing: -0.01em;
+        text-align: center;
+    }
+
+    /* 반응형 스타일은 그대로 유지 */
+    @media (max-width: 768px) {
+        .archive-grid {
+            gap: 1rem;
+        }
+        .card-content {
+            padding: 1rem;
+        }
+        .card-title-main {
+            font-size: 0.9rem;
+        }
+    }
+    @media (max-width: 480px) {
+        .archive-grid {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
