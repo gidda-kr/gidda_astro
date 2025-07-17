@@ -127,12 +127,15 @@ const collectionDescription = convertRichTextToHTML(collection.description);
 
 // resources 배열을 날짜(date) 기준으로 내림차순 정렬 (최신순)
 // collection.resources는 이미 배열 형태이므로 .data를 붙이지 않습니다.
-const sortedResources = collection.resources.sort((a, b) => {
+const sortedResources = (collection.resources || []).sort((a, b) => {
     // resource 객체는 attributes 없이 date를 직접 가집니다.
     const dateA = new Date(a.date);
     const dateB = new Date(b.date);
     return dateB.getTime() - dateA.getTime();
 });
+
+// 총 자료 개수
+const totalResourcesCount = sortedResources.length;
 
 const pageTitle = `${collection.title} - 자료모음`;
 const pageDescription = collection.description?.[0]?.children?.[0]?.text || collection.title;
@@ -142,6 +145,9 @@ const pageDescription = collection.description?.[0]?.children?.[0]?.text || coll
     <div class="collection-page-content">
         <header class="collection-header">
             <h1 class="collection-title">{collection.title}</h1>
+            <div class="collection-description">
+                <span class="total-resources">총 {totalResourcesCount}건의 자료</span>
+            </div>
             <div class="collection-description" set:html={collectionDescription}></div>
         </header>
 
@@ -200,6 +206,7 @@ const pageDescription = collection.description?.[0]?.children?.[0]?.text || coll
         color: #4a4a4a;
     }
 
+
     .resources-heading {
         font-size: 1.5rem;
         font-weight: 600;
@@ -256,6 +263,11 @@ const pageDescription = collection.description?.[0]?.children?.[0]?.text || coll
 
         .resource-item {
             padding: 1rem;
+        }
+
+        .total-resources {
+            font-size: 0.9rem;
+            padding: 0.4rem 0.8rem;
         }
     }
 </style>
