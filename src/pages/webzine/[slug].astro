@@ -163,6 +163,16 @@ const processedArticleContent = processWebzineContent(article.content);
             return null;
         }
 
+        // 💡 여기에 console.log를 추가해주세요! 💡
+        // 이 부분이 중요합니다. Content 컴포넌트로 전달될 데이터가 무엇인지 확인하는 곳입니다.
+        if (componentData.__component === 'common.content') {
+            console.log('--- Content Component Data Debugging ---');
+            console.log('Component Type:', componentData.__component);
+            console.log('Full Data:', componentData);
+            console.log('Style property:', componentData.style); // 특히 이 부분을 확인해주세요!
+            console.log('--- End Debugging ---');
+        }
+
         return <Component key={`${componentData.__component}-${index}`} {...componentData} />;
     })}
 </WebzineLayout>

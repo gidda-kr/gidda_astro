@@ -10,11 +10,13 @@
   },
   "dependencies": {
     "@astrojs/sitemap": "^3.4.1",
+    "@tailwindcss/vite": "^4.1.11",
     "astro": "^5.10.1",
     "cheerio": "^1.1.0",
     "markdown-it": "^14.1.0",
     "markdown-it-footnote": "^4.0.0",
     "pg": "^8.16.2",
-    "remarkable": "^2.0.1"
+    "remarkable": "^2.0.1",
+    "tailwindcss": "^4.1.11"
   }
 }
